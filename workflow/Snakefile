@@ -1,0 +1,14 @@
+""" Create an RNASeq pipeline up to the start of defrential analysis.
+"""
+from snakemake.utils import min_version
+min_version("7.0") # Enforces minimum snakemake version ~
+
+configfile: "config/config.json"
+configfile: "config/tools.json"
+pepfile: config["pepfile"]
+
+include: "rules/transformation.smk"
+
+rule all:
+    input: 
+        expand(rules.peptide_matrix_generation.output[0], database=pep.sample_table.database.unique().tolist()),

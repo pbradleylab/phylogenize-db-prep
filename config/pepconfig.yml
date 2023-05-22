@@ -1,0 +1,11 @@
+pep_version: 2.0.0
+sample_table: "/path/to/sample.tsv"
+sample_modifiers:
+  append:
+    raw_data: "/path/to/data/"
+  duplicate:
+    sample_type: pangenome
+  derive:
+    attributes: [pangenome]
+    sources:
+      pangenome: "{raw_data}/{sample}*.ffn"

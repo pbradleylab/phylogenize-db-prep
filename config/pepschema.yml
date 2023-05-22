@@ -1,0 +1,28 @@
+description: This workflow is meant to be a compliment to the Phylogenize package by Bradley and Pollard, 2020. Databases are generated at the species level with protein clustering for the package to use. The workflow starts from nucleotide level pangenomes and generates a taxonomy matrix of peptide clusters. It can then be run on the backend for databases
+imports:
+  - http:/schema.databio.org/pep/2.0.0.yaml
+properties:
+  samples:
+    type: array
+    items:
+      type: object
+      properties:
+        database:
+          type: string
+          description: "Database Identifier For The Pangenomes"
+        genome_name: 
+          type: string
+          description: "Name Of The Pangenome"
+        pangenome:
+          anyOf:
+            - type: string
+              description: "Pangenome file"
+            - type: array
+              type: string
+      required_files:
+        - pangenome
+      required:
+        - genome_name
+        - database
+required:
+  - samples
