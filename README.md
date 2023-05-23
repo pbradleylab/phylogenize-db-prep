@@ -1,0 +1,7 @@
+# Generation of Protein-Clustered Pangenome Databases
+For looking a species level pangenomic comparisons, it may be of use to have protein-clustered pangenomes in a taxa matrix. It is also easier to manage a matrix of clusters than individual pangenomes; hence why using this while developing pangenomic analysis tools is useful. [Phylogenize](https://bitbucket.org/pbradz/phylogenize) is a tools that allows, as descibed by it's developers, "links genes in microbial genomes to either microbial prevalence in, or specificity for, a given environment, while also taking into account an important potential confounder: the phylogenetic relationships between microbes". Protein level databases are used for the tool, which is why it is important as a compliment to have a way to easily generate new databses to increase its reach easily. We develope this workflow to efficiently work with nucleotides pangenomes to create new databases. We also encourage the community to contribute to this effort by submitting PR requests for databases to include or submitting the final databases generated via this workflow to the developers of Phylogenize or this repository.
+
+## Running The Workflow
+### Dependencies and Installation
+## Output Generated
+## Submission Process
