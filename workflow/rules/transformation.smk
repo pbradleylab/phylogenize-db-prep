@@ -45,10 +45,10 @@ rule mmseq2:
     params:
         db_name="resources/{database}",
         out_dir="results/{database}/mmseq2/{database}",
-        seq_id_precent=0.9,
-        tmp_dir="tmp90"
+        seq_id_precent=config["mmseq2"]["seq_id_precent"]
+        tmp_dir=config["mmseq2"]["tmp_dir"]
     conda: "../envs/transformation.yml"
-    threads: 4
+    threads: config["mmseq2"]["threads"]
     shell:
         """
         mmseqs cluster {params.db_name} {params.out_dir} {params.tmp_dir} --min-seq-id {params.seq_id_precent} --threads {threads}

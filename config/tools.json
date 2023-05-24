@@ -1,3 +1,7 @@
 {
-
+    "mmseq2":{
+        "threads":8,
+        "seq_id_precent":0.9,
+        "tmp_dir":"tmp90"
+    }
 }
