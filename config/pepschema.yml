@@ -1,4 +1,4 @@
-description: This workflow is meant to be a compliment to the Phylogenize package by Bradley and Pollard, 2020. Databases are generated at the species level with protein clustering for the package to use. The workflow starts from nucleotide level pangenomes and generates a taxonomy matrix of peptide clusters. It can then be run on the backend for databases
+description: RNAseq schema that allows for bacterial paired end read quantification. 
 imports:
   - http:/schema.databio.org/pep/2.0.0.yaml
 properties:
@@ -7,22 +7,29 @@ properties:
     items:
       type: object
       properties:
-        database:
+        project:
           type: string
-          description: "Database Identifier For The Pangenomes"
-        genome_name: 
+          description: "Project Identifier For The Sample"
+        sample_name: 
           type: string
-          description: "Name Of The Pangenome"
-        pangenome:
+          description: "Name Of The Sample"
+        seq_method:
+          type: string
+          description: "Paired end only, no support for other types"
+          enum: ["paired_end"]
+        reads:
           anyOf:
             - type: string
-              description: "Pangenome file"
+              description: "Fastq files for a sample"
             - type: array
+              items:
               type: string
       required_files:
-        - pangenome
+        - reads
       required:
-        - genome_name
-        - database
+        - sample_name
+        - project
+        - organism
+        - seq_method
 required:
   - samples
