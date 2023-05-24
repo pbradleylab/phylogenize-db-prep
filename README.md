@@ -10,6 +10,9 @@ This workflow expects that you have conda installed prior to starting. Conda is 
 4.
 
 ### Dependencies and Installation
+You will only need to have snakemake installed in an environment. The snakemake version needs to be greater than 7.0 or the workflow won't run since this is enforced internally. You can install a specific version if conda is installing a later version by specifying it like `conda install -c bioconda snakemake=7.0.0`. If this takes a long time you can install mamba into your snakemake environment and use mamba install instead. If you install mamba, then snakemake will internally use mamba to generate the interal environments and install dependencies which can save a lot of time on the inital run.
+
 ## Output Generated
+The final results will be in the `results/your_database_name/final/` all intermediate results are in `results/your_database_name/specific_tool_name`. If there are space limitations and you don't wish to retain any of these files, then in each rule that isn't desired add a `temp(output)` to the output line like: `output: temp(rules.something.output)` and the file will only be generated temporarily for any rules that need it. They will be retained if the rules that require the files as input fail, but will be removed if the all rules requiring the file succeeds.
 ## Submission Process
-Please contact either [Kathryn Kananen](kananen.13@osu.edu) or [Patrick Bradley](bradley.720@osu.edu) if you wish to submit to the phylogenize databases being used.
+Please contact either [Kathryn Kananen](kananen.13@osu.edu) or [Patrick Bradley](bradley.720@osu.edu) if you wish to submit to the phylogenize databases being used. If you need help transfering the final matrix to us, then please contact [Kathryn Kananen](kananen.13@osu.edu) to help facilitate a transfer of the larger file. 
