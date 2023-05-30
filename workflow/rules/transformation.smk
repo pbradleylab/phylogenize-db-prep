@@ -40,52 +40,39 @@ rule create_mmseq2_query_db:
         """
 
 rule download_UniRef90:
-     input: get_mmseq2_input
-    output: "resources/{database}.tsv"
+    output: "resources/{database}/UniRef90/UniRef90.fa"
     params:
-        db_name="resources/{database}"
+        db_name="resources/{database}/UniRef90"
     conda: "../envs/transformation.yml"
     shell:
         """
-        mmseqs databases UniRef90/Swiss-Prot resources/UniRef90/swissprot tmp
-        """   
-
-rule create_mmseq2_target_db:
-     input: rules.download_UniRef90.output
-    output: "resources/UniRef90.tsv"
-    params:
-        db_name="resources/UniRef90"
-    conda: "../envs/transformation.yml"
-    shell:
-        """
-        mmseqs createdb {input} {params.db_name} --dbtype 1
-        mmseqs createtsv {params.db_name} {params.db_name} {output}
-        """
-
-rule create_mmseq2_target_index:
-     input: rules.download_UniRef90.output
-    output: "resources/UniRef90.idx"
-    params:
-        db_name="resources/UniRef90"
-    conda: "../envs/transformation.yml"
-    shell:
-        """
+        mmseqs databases UniRef90 {params.db_name} tmp
         mmseqs createindex {params.db_name} tmp
         """
 
-rule mmseq2_query:
-    input: 
-        rules.create_mmseq2_query_db.output,
-        rules.create_mmseq2_target_index.output
-    output: "results/{database}/mmseq2/{database}.m8"
-    params:
-        query="resources/{database}",
-        target="resources/UniRef90",
-        results_db="results/mmseq2/db/{database}"
+rule create_mmseq2_target_db:
+    input: rules.download_UniRef90.output
+    output: "resources/{database}/UniRef90.tsv"
+    conda: "../envs/transformation.yml"
     shell:
         """
-        mmseqs search {params.query} {params.target} {params.results_db} tmp
+        mmseqs createdb {input} {output} --dbtype 1
         """
+
+# rule mmseq2_query:
+#     input: 
+#         rules.create_mmseq2_query_db.output,
+#         rules.create_mmseq2_target_db.output
+#     output: "results/{database}/mmseq2/{database}.m8"
+#     params:
+#         query="resources/{database}",
+#         target="resources/UniRef90",
+#         results_db="results/mmseq2/db/{database}"
+#     conda: "../envs/transformation.yml"
+#     shell:
+#         """
+#         mmseqs search {params.query} {params.target} {params.results_db} tmp
+#         """
 
 # rule mmseq2_convert_blast:
 #     input: rules.mmseq2_query.output
@@ -114,14 +101,6 @@ rule mmseq2_query:
 #         """
 #         mmseqs taxonomy {params.db_name}
 #         mmseqs cluster {params.db_name} {params.out_dir} {params.tmp_dir} --min-seq-id {params.seq_id_precent} --threads {threads}
-#         """
-
-# rule midas:
-#     input:rules.mmseq2.output
-#     output: 
-#     conda: "../envs/transformation.yml"
-#     shell:
-#         """
 #         """
 
 # rule peptide_matrix_generation:
