@@ -39,69 +39,64 @@ rule create_mmseq2_query_db:
         mmseqs createtsv {params.db_name} {params.db_name} {output}
         """
 
-rule download_UniRef90:
-    output: "resources/{database}/UniRef90/UniRef90.fa"
-    params:
-        db_name="resources/{database}/UniRef90"
-    conda: "../envs/transformation.yml"
-    shell:
-        """
-        mmseqs databases UniRef90 {params.db_name} tmp
-        mmseqs createindex {params.db_name} tmp
-        """
-
 rule create_mmseq2_target_db:
-    input: rules.download_UniRef90.output
-    output: "resources/{database}/UniRef90.tsv"
+    output: "resources/{database}/UniRef90/tmp/latest/UniRef90.fasta.gz"
+    params:
+         db_name="resources/{database}/UniRef90"
     conda: "../envs/transformation.yml"
+    threads: 8
     shell:
         """
-        mmseqs createdb {input} {output} --dbtype 1
+        mmseqs --thread {threads} UniRef90 UniRef90 {params.db_name}
         """
 
-# rule mmseq2_query:
-#     input: 
-#         rules.create_mmseq2_query_db.output,
-#         rules.create_mmseq2_target_db.output
-#     output: "results/{database}/mmseq2/{database}.m8"
-#     params:
-#         query="resources/{database}",
-#         target="resources/UniRef90",
-#         results_db="results/mmseq2/db/{database}"
-#     conda: "../envs/transformation.yml"
-#     shell:
-#         """
-#         mmseqs search {params.query} {params.target} {params.results_db} tmp
-#         """
+rule mmseq2_query:
+     input: 
+         rules.create_mmseq2_query_db.output,
+         rules.create_mmseq2_target_db.output
+     output: "results/{database}/mmseq2/{database}.m8"
+     params:
+         query="resources/{database}",
+         target="resources/UniRef90",
+         results_db="results/mmseq2/db/{database}"
+     conda: "../envs/transformation.yml"
+     shell:
+         """
+         mmseqs search {params.query} {params.target} {params.results_db} tmp
+         """
 
-# rule mmseq2_convert_blast:
-#     input: rules.mmseq2_query.output
-#     output: "results/{database}/mmseq2/{database}.tsv"
-#     params:
-#         query="resources/{database}",
-#         target="resources/UniRef90",
-#         results_db="results/mmseq2/db/{database}"
-#     shell:
-#         """
-#         mmseqs convertalis {params.query} {params.target} {params.results_db} {input}
-#         """
+rule mmseq2_convert_blast:
+     input: rules.mmseq2_query.output
+     output: "results/{database}/mmseq2/{database}.tsv"
+     params:
+         query="resources/{database}",
+         target="resources/UniRef90",
+         results_db="results/mmseq2/db/{database}"
+     shell:
+         """
+         mmseqs convertalis {params.query} {params.target} {params.results_db} {input}
+         """
 
-# rule mmseq2_cluster:
-#     input: rules.mmseq2_query.output
-#     output: 
-#         database="results/{database}/mmseq2/{database}.dbtype"
-#     params:
-#         db_name="resources/{database}",
-#         out_dir="results/{database}/mmseq2/{database}",
-#         seq_id_precent=config["mmseq2"]["seq_id_precent"],
-#         tmp_dir=config["mmseq2"]["tmp_dir"]
-#     conda: "../envs/transformation.yml"
-#     threads: config["mmseq2"]["threads"]
-#     shell:
-#         """
-#         mmseqs taxonomy {params.db_name}
-#         mmseqs cluster {params.db_name} {params.out_dir} {params.tmp_dir} --min-seq-id {params.seq_id_precent} --threads {threads}
-#         """
+# Cluster the unmapped protein sequences from mmseqs' search
+rule mmseq2_cluster:
+     input: rules.mmseq2_query.output
+     output: 
+         database="results/{database}/mmseq2/{database}.dbtype"
+     params:
+         db_name="resources/{database}",
+         out_dir="results/{database}/mmseq2/{database}",
+         seq_id_precent=config["mmseq2"]["seq_id_precent"],
+         tmp_dir=config["mmseq2"]["tmp_dir"]
+     conda: "../envs/transformation.yml"
+     threads: config["mmseq2"]["threads"]
+     shell:
+         """
+         # mmseqs taxonomy {params.db_name}
+         mmseqs cluster {params.db_name} {params.out_dir} {params.tmp_dir} --min-seq-id {params.seq_id_precent} --threads {threads}
+         """
+
+
+
 
 # rule peptide_matrix_generation:
 #     input:rules.build_pangenome_database.output
