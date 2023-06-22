@@ -5,3 +5,4 @@ channels:
 dependencies:
   - emboss=6.6.0
   - mmseqs2=14.7e284
+  - samtools=1.17
