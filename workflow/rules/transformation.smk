@@ -180,7 +180,6 @@ rule mmseqs2_linclust:
 # Generate a maxtrix for all of the databases made with the taxon id
 # on the top and the protein family on the y axis.
 
-
 # rule peptide_matrix_generation:
 #     input:rules.build_pangenome_database.output
 #     output: 
