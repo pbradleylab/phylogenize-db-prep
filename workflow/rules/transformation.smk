@@ -73,7 +73,7 @@ rule mmseqs2_map:
          prefix="{database}_map",
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
          target_prefix=rules.create_mmseqs2_target_db.params.target_prefix
-     threads: config["mmseq2"]["threads"]
+     threads: config["mmseqs2"]["threads"]
      conda: "../envs/transformation.yml"
      shell:
          """
@@ -86,15 +86,15 @@ rule mmseqs2_map:
 # `samtools_get_aligned`.
 rule mmseqs2_convertalis:
      input:
-         query=rules.create_mmseqs2_query_db.output.query_prefix,
-         target=rules.create_mmseqs2_target_db.output.target_prefix,
+         query=rules.create_mmseqs2_query_db.output.db_prefix,
+         target=rules.create_mmseqs2_target_db.output.db_prefix,
          mapped=rules.mmseqs2_map.output.out_dir
      output: "results/{database}/mmseqs2/convertalis/{database}_convertlis.sam"
      params:
          prefix=rules.mmseqs2_map.params.prefix,
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
          target_prefix=rules.create_mmseqs2_target_db.params.target_prefix
-     threads: config["mmseq2"]["threads"]
+     threads: config["mmseqs2"]["threads"]
      conda: "../envs/transformation.yml"
      shell:
          """
@@ -135,24 +135,25 @@ rule samtools_fasta:
 rule create_mmseqs2_unaligned_db:
     input: rules.samtools_fasta.output
     output: 
-        out_dir=directory("resources/{database}/unmapped/"),
-        index="resources/{database}/mmseqs2/unmapped/unmapped.index"
+        out_dir=directory("resources/{database}/mmseqs2/unmapped/"),
+        index="resources/{database}/mmseqs2/unmapped/unmapped.index",
     params:
         unaligned_prefix="unmapped"
     conda: "../envs/transformation.yml"
     log: "logs/{database}/mmseqs2/create_mmseqs2_unaligned/mmseqs2_create_mmseqs2_unaligned.log"
     shell:
         """
+        mkdir -p {output.out_dir}
         mmseqs createdb {input} {output.out_dir}/{params.unaligned_prefix} --dbtype 1 2> {log}
         mmseqs createindex {output.out_dir}/{params.unaligned_prefix} /tmp 2> {log}
         """
 
 # Cluster the unaligned protein sequence database from 
 # mmseqs' search command.
-rule mmseq2_linclust:
+rule mmseqs2_linclust:
      input: rules.create_mmseqs2_unaligned_db.output.out_dir
      output: 
-         database="results/{database}/mmseq2/{database}.dbtype",
+         database="results/{database}/mmseqs2/linclust/unaligned_linclust.index",
          out_dir=directory("results/{database}/mmseqs2/linclust/")
      params:
          unaligned_prefix=rules.create_mmseqs2_unaligned_db.params.unaligned_prefix,
