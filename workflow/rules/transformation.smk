@@ -7,7 +7,7 @@ def get_pangenomes(wildcards):
     pangenomes = get_subsample_attributes(wildcards.pangenome, "reads", pep)
     return pangenomes
 
-def get_mmseq2_input(wildcards):
+def get_mmseqs2_input(wildcards):
     outputLST = []
     for subsample in pep.subsample_table.subsample.tolist():
         project = get_subsample_attributes(subsample, "project", pep)
@@ -27,96 +27,101 @@ rule transeq:
 
 rule create_mmseqs2_query_db:
     input: get_mmseqs2_input
-    output: "resources/{database}/custom/custom.index"
+    output:
+        index="resources/{database}/custom/custom.index",
+        db_prefix=directory("resources/{database}/custom")
     params:
-        db_name="resources/{database}/custom/custom"
+        query_prefix="custom"
     conda: "../envs/transformation.yml"
+    log: "logs/{database}/custom/{database}.log"
     shell:
         """
-        mmseqs createdb {input} {params.db_name} --dbtype 1 
-        mmseqs createindex {params.db_name} /tmp
-	"""
+        mmseqs createdb {input} {output.db_prefix}/{params.query_prefix} --dbtype 1 2> {log}
+        mmseqs createindex {output.db_prefix}/{params.query_prefix} /tmp 2> {log}
+        """
 
 rule create_mmseqs2_target_db:
     output: 
          fasta="resources/{database}/uniprot90/tmp/latest/uniref90.fasta.gz",
-         db_folder="resources/{database}/uniprot90"
+         db_prefix="resources/{database}/uniprot90"
+    params:
+        target_prefix="UniRef90"
     conda: "../envs/transformation.yml"
     threads: 32
     shell:
         """
-        mmseqs databases UniRef90 UniRef90 {params.db_folder} --threads {threads}
+        mmseqs databases UniRef90 {params.target_prefix} {output.db_prefix}/{params.target_prefix} --threads {threads}
         """
 
-# Compute the ungapped alignment score for the target and query database
-# with the highest score being returned for consecutive k-mer matches.
-rule mmseqs2_pref:
-     input:
-         query=rules.create_mmseqs2_query_db.output,
-         target=rules.create_mmseqs2_target_db.output
-     output:
-         out_dir="results/{database}/mmseqs2/pref/"
-     params:
-         prefix="{database}_pref"
-     threads: config["mmseq2"]["threads"]
-     conda: "../envs/clustering.yml"
-     shell:
-         """
-         mkdir -p {output}
-         mmseqs prefilter --threads {threads} {input.query} {output.target} {output}/{params.prefix}
-         """
-
-# Align the amino acid sequences by similarity in the UniProt 90 database
-# The internal prefilter module is called which is low sensitivity to 
-# detect high scores and ungapped alignment.
+# Map the amino acid sequences by similarity in the UniProt 90 database
+# The internal prefilter module is called which is high sensitivity to 
+# detect high scores and ungapped alignment. This could be exchanged for
+# the `mmseqs search` command for lower sensitivity.
+# 
+# Note: We call params here from previous rules. This method is continued
+#    throughout all subsequent methods for continuety. These can be abstracted
+#    out to a config however it looses some of the automation that way.
 rule mmseqs2_map:
      input:
-         query=rules.create_mmseqs2_query_db.output,
-         target=rules.create_mmseqs2_target_db.output,
+         query=rules.create_mmseqs2_query_db.output.db_prefix,
+         target=rules.create_mmseqs2_target_db.output.db_prefix
      output:
-         out_dir="results/{database}/mmseqs2/mapping/",
+         out_dir=directory("results/{database}/mmseqs2/mapping/"),
          index="results/{database}/mmseqs2/mapping/{database}_map.index"
      log: "logs/{database}/mmseqs2/mapping/mmseqs2_map.log"
      params:
-         prefix="{database}_map"
+         prefix="{database}_map",
+         query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
+         target_prefix=rules.create_mmseqs2_target_db.params.target_prefix
      threads: config["mmseq2"]["threads"]
-     conda: "../envs/clustering.yml"
+     conda: "../envs/transformation.yml"
      shell:
          """
-         mkdir -p {output} 
-         mmseqs map --threads {threads} {input.query} {output.query} {output}/{params.prefix} /tmp/tmp \
-             --comp-bias-corr 0 --mask 0 -e inf --max-seqs 300 --exact-kmer-matching 1 \
-             --spaced-kmer-pattern 110111 -k 5 -a 1 --min-seq-id 1 \
-             2> {log}
+         mkdir -p {output.out_dir}
+         mmseqs map --threads {threads} {input.query}/{params.query_prefix} {input.target}/{params.target_prefix} {output.out_dir}/{params.prefix} /tmp/tmp -a 2> {log}
          """
 
+# Converts the database's mappings to a sam format. The unmapped (unaligned)
+# sequences are then taken to generate a new database in rule:
+# `samtools_get_aligned`.
 rule mmseqs2_convertalis:
      input:
-         query=rules.create_mmseqs2_query_db.output,
-         target=rules.create_mmseqs2_target_db.output,
-         mapped=rules.mmseqs_map.output
+         query=rules.create_mmseqs2_query_db.output.query_prefix,
+         target=rules.create_mmseqs2_target_db.output.target_prefix,
+         mapped=rules.mmseqs2_map.output.out_dir
      output: "results/{database}/mmseqs2/convertalis/{database}_convertlis.sam"
+     params:
+         prefix=rules.mmseqs2_map.params.prefix,
+         query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
+         target_prefix=rules.create_mmseqs2_target_db.params.target_prefix
      threads: config["mmseq2"]["threads"]
-     conda: "../envs/clustering.yml"
+     conda: "../envs/transformation.yml"
      shell:
          """
-         mmseqs convertalis {input.query} {input.target} {input.mapped} {output} --format-mode 1
+         mmseqs convertalis {input.query}/{params.query_prefix} {input.target}/{params.target_prefix} {input.mapped}/{params.prefix} {output} --format-mode 1
          """
 
-# Get all the sequences that are not labeled as unaligned in the .sam file
-rule samtools_get_aligned:
+# Get all the sequences that are not labeled as unaligned in the .sam 
+# file. The output is a bam as to retain headers as samtools doesn't 
+# keep header information which results in many downstream errors for
+# programs.
+rule samtools_get_unaligned:
      input:
-         mapped=rules.mmseqs2_convertalis.output
+         unmapped=rules.mmseqs2_convertalis.output
      output: "results/{database}/samtools/unaligned/{database}_aligned.bam"
      log: "logs/{database}/samtools/mapping/{database}_map.log"
      conda: "../envs/transformation.yml"
      shell:
          """
-         samtools view -b -F 4 {input} -o {output}
+         samtools view -b -f 4 {input} -o {output}
          """ 
 
+# Convert the unaligned samples to a fasta to build a new database.
+# We consider these to be temporary files as we retain the bam for QC
+# afterwards since reads may have failed to align due to other reasons
+# and not solely based on species sequence homology.
 rule samtools_fasta:
-     input: rules.samtools_get_aligned.output
+     input: rules.samtools_get_unaligned.output
      output: "results/{database}/samtools/fasta/{database}.fasta"
      conda: "../envs/transformation.yml"
      shell:
@@ -124,39 +129,56 @@ rule samtools_fasta:
          samtools fasta {input} > {output}
          """
 
+# Create a new database that is declared as temporary. This database
+# holds the unaligned peptide sequences that are assumed as potential
+# species specific alignments.
 rule create_mmseqs2_unaligned_db:
     input: rules.samtools_fasta.output
-    output: "resources/{database}/unmapped/unmapped.index"
+    output: 
+        out_dir=directory("resources/{database}/unmapped/"),
+        index="resources/{database}/mmseqs2/unmapped/unmapped.index"
     params:
-        db_name="resources/{database}/unmapped/unmapped"
+        unaligned_prefix="unmapped"
     conda: "../envs/transformation.yml"
+    log: "logs/{database}/mmseqs2/create_mmseqs2_unaligned/mmseqs2_create_mmseqs2_unaligned.log"
     shell:
         """
-        mmseqs createdb {input} {params.db_name} --dbtype 1
-        mmseqs createindex {params.db_name} /tmp
+        mmseqs createdb {input} {output.out_dir}/{params.unaligned_prefix} --dbtype 1 2> {log}
+        mmseqs createindex {output.out_dir}/{params.unaligned_prefix} /tmp 2> {log}
         """
 
-# Make a new database based only on unmapped sequences
-# mmseqs clusterupdate DB_old DB_new CLU_old DB_updated CLU_updated tmp
-# Sanity Check
-# mmseqs createtsv DB_updated DB_updated CLU_updated clusters.tsv
-
-# Cluster the unmapped protein sequences from mmseqs' search
+# Cluster the unaligned protein sequence database from 
+# mmseqs' search command.
 rule mmseq2_linclust:
-     input: rules.create_mmseqs2_unaligned_db.output
+     input: rules.create_mmseqs2_unaligned_db.output.out_dir
      output: 
-         database="results/{database}/mmseq2/{database}.dbtype"
+         database="results/{database}/mmseq2/{database}.dbtype",
+         out_dir=directory("results/{database}/mmseqs2/linclust/")
      params:
-         db_name="resources/{database}",
-         out_dir="results/{database}/mmseq2/{database}",
-         seq_id_precent=config["mmseq2"]["seq_id_precent"],
-         tmp_dir=config["mmseq2"]["tmp_dir"]
+         unaligned_prefix=rules.create_mmseqs2_unaligned_db.params.unaligned_prefix,
+         prefix="unaligned_linclust",
+         seq_id_precent=config["mmseqs2"]["seq_id_precent"],
+         tmp_dir=config["mmseqs2"]["tmp_dir"]
      conda: "../envs/transformation.yml"
-     threads: config["mmseq2"]["threads"]
+     log: "logs/{database}/mmseqs2/linclust/mmseqs2_linclust.log"
+     threads: config["mmseqs2"]["threads"]
      shell:
          """
-         mmseqs linclust {params.db_name} {params.out_dir} {params.tmp_dir} --min-seq-id {params.seq_id_precent} --threads {threads}
+         mmseqs linclust {input}/{params.unaligned_prefix} {output.out_dir}/{params.prefix} {params.tmp_dir} --min-seq-id {params.seq_id_precent} --threads {threads} 2> {log}
          """
+
+# Add taxonomy to the database. Mmseqs2 only uses uniprot internally,
+# therefore since ids may be from an assortment of databases we assume
+# the user can suply a mapping file as explained in the readme prior 
+# to running this workflow. Uniprot90 ids are used by default to match
+# mmseqs2.
+#
+# Generate a taxonomy database from the clustered database of unmapped 
+# sequences representing a single species.
+
+# Generate a maxtrix for all of the databases made with the taxon id
+# on the top and the protein family on the y axis.
+
 
 # rule peptide_matrix_generation:
 #     input:rules.build_pangenome_database.output
