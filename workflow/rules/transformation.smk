@@ -15,21 +15,30 @@ def get_mmseqs2_input(wildcards):
         outputLST.append(rules.transeq.output[0].format(database=project, pangenome=subsample))
     return outputLST
 
+
 # Translate nucleotides per genome to peptide sequences per genome.
+# Please check the config to set if stop codons shouldn't convert
+# from the default '*' character to an 'X' representing any animo acid.
 rule transeq:
     input:get_pangenomes
     output: "results/{database}/transeq/{pangenome}.ffn"
+    params:
+        "clean"=config["transeq"]["convert_missing_to_x"]
+    log: "logs/{database}/transeq/{pangenome}.log"
     conda: "../envs/transformation.yml"
     shell:
         """
-        transeq {input} {output}
+        transeq {input} {output} -clean {params.clean} 2> {log}
         """
 
+# Creates a query database, query being the database containing the
+# pangenomes that is being made into a final species level protein 
+# binary for Phylogenize.
 rule create_mmseqs2_query_db:
     input: get_mmseqs2_input
     output:
         index="resources/{database}/custom/custom.index",
-        db_prefix=directory("resources/{database}/custom")
+        query_path=directory("resources/{database}/custom")
     params:
         query_prefix="custom"
     conda: "../envs/transformation.yml"
@@ -37,7 +46,7 @@ rule create_mmseqs2_query_db:
     shell:
         """
         mmseqs createdb {input} {output.db_prefix}/{params.query_prefix} --dbtype 1 2> {log}
-        mmseqs createindex {output.db_prefix}/{params.query_prefix} /tmp 2> {log}
+        mmseqs createindex {output.query_path}/{params.query_prefix} /tmp 2> {log}
         """
 
 rule create_mmseqs2_target_db:
@@ -113,7 +122,7 @@ rule samtools_get_unaligned:
      conda: "../envs/transformation.yml"
      shell:
          """
-         samtools view -b -f 4 {input} -o {output}
+         samtools view -b -F 4 {input} -o {output}
          """ 
 
 # Convert the unaligned samples to a fasta to build a new database.

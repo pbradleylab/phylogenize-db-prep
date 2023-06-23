@@ -1,3 +1,7 @@
 {
-    "pepfile":"config/pepconfig.yml"
+    "pepfile":"config/pepconfig.yml",
+    "target_db":{
+        "uniprot90":"True",
+        "uhgp90":"True"
+    }
 }
