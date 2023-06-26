@@ -1,3 +1,8 @@
 {
-    "pepfile":"config/pepconfig.yml"
+    "pepfile":"config/pepconfig.yml",
+    "target_db":{
+        "uniprot90":"True",
+        "uhgp90":"True",
+        "uhgp90_url":"http://ftp.ebi.ac.uk/pub/databases/metagenomics/mgnify_genomes/human-gut/v2.0.1/protein_catalogue/uhgp-90.tar.gz"
+    }
 }

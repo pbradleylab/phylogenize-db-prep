@@ -1,7 +1,32 @@
 {
     "mmseqs2":{
-        "threads":32,
-        "seq_id_precent":0.9,
-        "tmp_dir":"tmp90"
+        "convertalis":{
+            "threads":32
+        },
+        "map":{
+            "threads":32
+        },
+        "createdb":{
+            "threads":32
+        },
+        "createindex":{
+         "threads":32
+        },
+        "linclust":{
+            "threads":32,
+            "seq_id_precent":0.9,
+            "tmp_dir":"tmp90"
+        }
+    },
+    "samtools":{
+        "fasta":{
+            "threads":16
+        },
+        "view":{
+            "threads":16
+        }
+    },
+    "transeq":{
+        "convert_missing_to_x":"true"
     }
 }
