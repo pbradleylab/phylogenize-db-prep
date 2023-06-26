@@ -21,7 +21,7 @@ def get_mmseqs2_input(wildcards):
     
 
 rule download_ughp90:
-    output: "resources/{database}/uhgp90/uhgp-90.tar.gz"
+    output: "resources/{database}/uhgp-90.tar.gz"
     params:
        url=config["target_db"]["uhgp90_url"]
     conda: "../envs/resources.yml"
@@ -32,7 +32,7 @@ rule download_ughp90:
 
 rule unpack_ughp90:
     input: rules.download_ughp90.output
-    output: "resources/{database}/uhgp90/uhgp-90"
+    output: "resources/{database}/uhgp-90/uhgp-90.faa"
     shell:
         """
         tar -zxvf {input} 
@@ -40,15 +40,19 @@ rule unpack_ughp90:
 
 rule create_mmseqs2_target_db:
     output:
-         fasta="resources/{database}/uniprot90/tmp/latest/uniref90.fasta.gz",
-         target_path="resources/{database}/uniprot90"
+        uniprot90_fasta="resources/{database}/uniprot90/tmp/latest/uniref90.fasta.gz",
+        uniprot90_path="resources/{database}/uniprot90",
+        ughp90_path="resources/{database}/ughp-90",
+        ughp90_fasta=rules.unpack_ughp90.output
     params:
-        target_prefix="UniRef90"
+        uniprot90_prefix="UniRef90",
+        ughp90_prefix="ughp-90"
     conda: "../envs/transformation.yml"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """
-        mmseqs databases UniRef90 {params.target_prefix} {output.target_path}/{params.target_prefix} --threads {threads}
+        mmseqs databases UniRef90 {params.uniprot90_prefix} {output.uniprot90_path}/{params.uniprot90_prefix} --threads {threads}
+        mmseqs databases UniRef90 {params.ughp90_prefix} {output.ughp90_path}/{params.ughp90_prefix} --threads {threads}
         """
 
 # Creates a query database, query being the database containing the

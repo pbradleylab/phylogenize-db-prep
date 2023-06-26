@@ -4,6 +4,7 @@ from scripts.utils import *
 configfile: "config/config.json"
 
 include: "resources.smk"
+include: "mapping.smk"
 
 def get_pangenomes(wildcards):
     pangenomes = get_subsample_attributes(wildcards.pangenome, "reads", pep)
@@ -24,49 +25,19 @@ rule transeq:
         transeq {input} {output} -clean {params.clean} 2> {log}
         """
 
-# Map the amino acid sequences by similarity in the UniProt 90 database
-# The internal prefilter module is called which is high sensitivity to
-# detect high scores and ungapped alignment. This could be exchanged for
-# the `mmseqs search` command for lower sensitivity.
-#
-# Note: We call params here from previous rules. This method is continued
-#    throughout all subsequent methods for continuety. These can be abstracted
-#    out to a config however it looses some of the automation that way.
-rule mmseqs2_map:
-     input:
-         query=rules.create_mmseqs2_query_db.output.query_path,
-         target=rules.create_mmseqs2_target_db.output.target_path
-     output:
-         out_dir=directory("results/{database}/mmseqs2/mapping/"),
-         index="results/{database}/mmseqs2/mapping/{database}_map.index"
-     log: "logs/{database}/mmseqs2/mapping/mmseqs2_map.log"
-     params:
-         prefix="{database}_map",
-         query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
-         target_prefix=rules.create_mmseqs2_target_db.params.target_prefix
-     threads: config["mmseqs2"]["map"]["threads"]
-     conda: "../envs/transformation.yml"
-     shell:
-         """
-         mkdir -p {output.out_dir}
-            mmseqs map --threads {threads} {input.query}/{params.query_prefix} \
-            {input.target}/{params.target_prefix} {output.out_dir}/{params.prefix} \
-            /tmp/tmp -a 2> {log}
-         """
-
 # Converts the database's mappings to a sam format. The unmapped (unaligned)
 # sequences are then taken to generate a new database in rule:
 # `samtools_get_aligned`.
 rule mmseqs2_convertalis:
      input:
          query=rules.create_mmseqs2_query_db.output.query_path,
-         target=rules.create_mmseqs2_target_db.output.target_path,
+         target=rules.create_mmseqs2_target_db.output.uniprot90_path,
          mapped=rules.mmseqs2_map.output.out_dir
      output: "results/{database}/mmseqs2/convertalis/{database}_convertlis.sam"
      params:
          prefix=rules.mmseqs2_map.params.prefix,
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
-         target_prefix=rules.create_mmseqs2_target_db.params.target_prefix
+         target_prefix=rules.create_mmseqs2_target_db.params.uniprot90_prefix
      threads: config["mmseqs2"]["convertalis"]["threads"]
      conda: "../envs/transformation.yml"
      shell:
@@ -122,28 +93,6 @@ rule create_mmseqs2_unaligned_db:
         mmseqs createindex {output.out_dir}/{params.unaligned_prefix} \
             /tmp 2> {log}
         """
-
-# Cluster the unaligned protein sequence database from
-# mmseqs' search command.
-rule mmseqs2_linclust:
-     input: rules.create_mmseqs2_unaligned_db.output.out_dir
-     output:
-         database="results/{database}/mmseqs2/linclust/unaligned_linclust.index",
-         out_dir=directory("results/{database}/mmseqs2/linclust/")
-     params:
-         unaligned_prefix=rules.create_mmseqs2_unaligned_db.params.unaligned_prefix,
-         prefix="unaligned_linclust",
-         seq_id_precent=config["mmseqs2"]["linclust"]["seq_id_precent"],
-         tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"]
-     conda: "../envs/transformation.yml"
-     log: "logs/{database}/mmseqs2/linclust/mmseqs2_linclust.log"
-     threads: config["mmseqs2"]["linclust"]["threads"]
-     shell:
-         """
-         mmseqs linclust {input}/{params.unaligned_prefix} {output.out_dir}/{params.prefix} \
-            {params.tmp_dir} --min-seq-id {params.seq_id_precent} \
-            --threads {threads} 2> {log}
-         """
 
 # Add taxonomy to the database. Mmseqs2 only uses uniprot internally,
 # therefore since ids may be from an assortment of databases we assume
