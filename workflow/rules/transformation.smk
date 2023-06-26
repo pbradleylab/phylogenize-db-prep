@@ -7,7 +7,7 @@ include: "resources.smk"
 include: "mapping.smk"
 
 def get_pangenomes(wildcards):
-    pangenomes = get_subsample_attributes(wildcards.pangenome, "reads", pep)
+    pangenomes = get_subsample_attributes(wildcards.pangenome, "genomes", pep)
     return pangenomes
 
 # Translate nucleotides per genome to peptide sequences per genome.
@@ -28,7 +28,7 @@ rule transeq:
 # Converts the database's mappings to a sam format. The unmapped (unaligned)
 # sequences are then taken to generate a new database in rule:
 # `samtools_get_aligned`.
-rule mmseqs2_convertalis:
+rule mmseqs2_convertalis_sam:
      input:
          query=rules.create_mmseqs2_query_db.output.query_path,
          target=rules.create_mmseqs2_target_db.output.uniprot90_path,
@@ -53,13 +53,16 @@ rule mmseqs2_convertalis:
 # programs.
 rule samtools_get_unaligned:
      input:
-         unmapped=rules.mmseqs2_convertalis.output
-     output: "results/{database}/samtools/unaligned/{database}_aligned.bam"
+         unmapped=rules.mmseqs2_convertalis_sam.output
+     output: 
+        unmapped="results/{database}/samtools/unaligned/{database}_unaligned.bam",
+        identity_90="results/{database}/samtools/unaligned/{database}_aligned.bam"
      log: "logs/{database}/samtools/mapping/{database}_map.log"
      conda: "../envs/transformation.yml"
      shell:
          """
-         samtools view -b -F 4 {input} -o {output}
+         samtools view -b -f 4 {input} -o {output.unmapped} 2> {log}
+         samtools view -b -F 4 {input} -o {output.identity_90} 2> {log}
          """
 
 # Convert the unaligned samples to a fasta to build a new database.
@@ -74,6 +77,7 @@ rule samtools_fasta:
          """
          samtools fasta {input} > {output}
          """
+
 # Create a new database that is declared as temporary. This database
 # holds the unaligned peptide sequences that are assumed as potential
 # species specific alignments.
@@ -94,25 +98,29 @@ rule create_mmseqs2_unaligned_db:
             /tmp 2> {log}
         """
 
-# Add taxonomy to the database. Mmseqs2 only uses uniprot internally,
-# therefore since ids may be from an assortment of databases we assume
-# the user can suply a mapping file as explained in the readme prior 
-# to running this workflow. Uniprot90 ids are used by default to match
-# mmseqs2.
-#
-# Generate a taxonomy database from the clustered database of unmapped 
-# sequences representing a single species.
+# Combines species with a 90% or greater identity match to the target database, 
+# and the unmapped regions to a list of species specific vectors by their centroid.
+rule combine_species_hits:
+    input:
+        unmapped=rules.samtools_get_unaligned.output.unmapped,
+        identity_90=rules.samtools_get_unaligned.output.identity_90
+    output: "results/{database}/combined_species_hits/{database}.tsv"
+    conda: "../envs/transformation.yml"
+    log: "logs/{database}/mmseqs2/hits_90/mmseqs2_hits_90.log"
+    shell:
+        """
+        samtools view {input.unmapped} > {output}
+        samtools view {input.identity_90} >> {output}
+        """
 
-# Generate a maxtrix for all of the databases made with the taxon id
-# on the top and the protein family on the y axis.
-
-# rule peptide_matrix_generation:
-#     input:rules.build_pangenome_database.output
-#     output: 
-#     params:
-#     log: 
-#     resources: 
-#     conda: "../envs/transformation.yml"
-#     shell:
-#         """
-#         """
+rule create_species_matrix:
+    input:
+        # centroids=rules.concat_centoids.output,
+        species=rules.combine_species_hits.output
+    output: "results/{database}/final/species_matrix/{database}.tsv"
+    conda: "../envs/transformation.yml"
+    log: "logs/{database}/mmseqs2/hits_90/mmseqs2_hits_90.log"
+    shell:
+        """
+       echo {output}
+        """

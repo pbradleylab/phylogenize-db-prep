@@ -13,19 +13,19 @@ properties:
         sample_name: 
           type: string
           description: "Name Of The Sample"
-        seq_method:
-          type: string
-          description: "Paired end only, no support for other types"
-          enum: ["paired_end"]
-        reads:
+        genomes:
           anyOf:
             - type: string
-              description: "Fastq files for a sample"
+              description: "Pangenome .ffn file"
             - type: array
-              items:
-              type: string
+        centroid:
+          anyOf:
+            - type: string
+              description: "centroid information in a text file (see Readme)"
+            - type: array
       required_files:
-        - reads
+        - genomes
+        - centroid
       required:
         - sample_name
         - project

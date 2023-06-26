@@ -1,9 +1,3 @@
-def retrieve_databases(wildcards):
-    databaseLST = [] 
-    if config["target_db"]["uhgp90"].lower() == "true":
-        databaseLST.append(rules.unpack_ughp90.output.fasta)
-    return databaseLST
-
 # Map the amino acid sequences by similarity in the UniProt 90 database
 # The internal prefilter module is called which is high sensitivity to
 # detect high scores and ungapped alignment. This could be exchanged for
