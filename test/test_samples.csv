@@ -1,3 +1,3 @@
 sample_name,alternate_id,project,organism,sample_type
-145088,145088,GTDB,GTDB,rna
-145089,145089,GTDB,GTDB,rna
+145088,145088,GTDB,prokaryote,genome
+145089,145089,GTDB,prokaryote,genome

@@ -3,10 +3,10 @@ sample_table: "../test/test_samples.csv" #Change for run
 subsample_table: "../test/test_subsamples.csv" #Change for run
 sample_modifiers:
   append:
-    raw_data: "test/GTDB" #Change for run
+    raw_data_genomes: "test/GTDB" #Change for run
   duplicate:
-    sample_type: reads
+    sample_type: pangenomes
   derive:
-    attributes: [reads]
+    attributes: [pangenomes]
     sources:
-      rna: "{raw_data}/{pangenome}.ffn"
+      genome: "{raw_data_genomes}/{pangenome}.ffn"

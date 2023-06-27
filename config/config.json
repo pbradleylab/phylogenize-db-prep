@@ -1,7 +1,8 @@
 {
     "pepfile":"config/pepconfig.yml",
+    "centroids":"test/GTDB/combined_centroids.tsv",
     "target_db":{
-        "uniprot90":"True",
-        "uhgp90":"True"
+        "uhgp90":"True",
+        "uhgp90_url":"http://ftp.ebi.ac.uk/pub/databases/metagenomics/mgnify_genomes/human-gut/v2.0.1/protein_catalogue/uhgp-90.tar.gz"
     }
 }
