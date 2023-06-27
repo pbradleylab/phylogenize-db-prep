@@ -13,23 +13,15 @@ properties:
         sample_name: 
           type: string
           description: "Name Of The Sample"
-        genomes:
+        pangenomes:
           anyOf:
             - type: string
-              description: "Pangenome .ffn file"
-            - type: array
-        centroid:
-          anyOf:
-            - type: string
-              description: "centroid information in a text file (see Readme)"
+              description: "Pangenome"
             - type: array
       required_files:
-        - genomes
-        - centroid
+        - pangenomes
       required:
         - sample_name
         - project
-        - organism
-        - seq_method
 required:
   - samples

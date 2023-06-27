@@ -4,11 +4,6 @@ should be placed here.
 configfile: "config/config.json"
 
 
-def get_centroids(wildcards):
-    print(wildcards)
-    centroids = get_subsample_attributes(wildcards.pangenome, "centroids", pep)
-    return centroids
-
 def get_mmseqs2_input(wildcards):
     outputLST = []
     for subsample in pep.subsample_table.subsample.tolist():
@@ -16,33 +11,6 @@ def get_mmseqs2_input(wildcards):
         # Always run rules on the outside
         outputLST.append(rules.transeq.output[0].format(database=project, pangenome=subsample))
     return outputLST
-
-# rule download_ughp90:
-#     output: "resources/{database}/uhgp-90.tar.gz"
-#     params:
-#        url=config["target_db"]["uhgp90_url"]
-#     conda: "../envs/resources.yml"
-#     shell:
-#         """
-#         wget -c {params.url} -O {output}
-#         """
-
-# rule unpack_ughp90:
-#     input: rules.download_ughp90.output
-#     output: "resources/{database}/uhgp-90/uhgp-90.faa"
-#     shell:
-#         """
-#         tar -zxvf {input} 
-#         """
-
-# WARNING: This will have the header info in the columns multiple times.
-rule concat_centoids:
-    input: get_centroids
-    output: "resources/centroids/gtdb_centroids.tsv"
-    shell:
-        """
-        concat {input} > {output}
-        """
 
 rule create_mmseqs2_target_db:
     output:
@@ -76,3 +44,21 @@ rule create_mmseqs2_query_db:
         mmseqs createdb {input} {output.query_path}/{params.query_prefix} --dbtype 1 2> {log}
         mmseqs createindex {output.query_path}/{params.query_prefix} /tmp 2> {log}
         """
+
+# rule download_ughp90:
+#     output: "resources/{database}/uhgp-90.tar.gz"
+#     params:
+#        url=config["target_db"]["uhgp90_url"]
+#     conda: "../envs/resources.yml"
+#     shell:
+#         """
+#         wget -c {params.url} -O {output}
+#         """
+
+# rule unpack_ughp90:
+#     input: rules.download_ughp90.output
+#     output: "resources/{database}/uhgp-90/uhgp-90.faa"
+#     shell:
+#         """
+#         tar -zxvf {input} 
+#         """

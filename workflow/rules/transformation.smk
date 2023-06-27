@@ -7,7 +7,7 @@ include: "resources.smk"
 include: "mapping.smk"
 
 def get_pangenomes(wildcards):
-    pangenomes = get_subsample_attributes(wildcards.pangenome, "genomes", pep)
+    pangenomes = get_subsample_attributes(wildcards.pangenome, "pangenomes", pep)
     return pangenomes
 
 # Translate nucleotides per genome to peptide sequences per genome.
