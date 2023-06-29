@@ -129,21 +129,23 @@ rule combine_species_hits:
     input:
         unmapped=rules.samtools_get_unaligned.output,
         identity_90=rules.get_top_90_evals.output
-    output: "results/{database}/mmseqs2/combined_species_hits/{database}.txt"
+    output: 
+         txt="results/{database}/mmseqs2/combined_species_hits/{database}.txt",
+         out_dir=directory("results/{database}/mmseqs2/combined_species_hits/")
     conda: "../envs/transformation.yml"
     log: "logs/{database}/mmseqs2/hits_90/mmseqs2_hits_90.log"
     shell:
         """
-        samtools view {input.unmapped} | cut -f1 > {output}
-        cat {input.identity_90} | cut -f1 >> {output}
+        samtools view {input.unmapped} | cut -f1 > {output.txt}
+        cat {input.identity_90} | cut -f1 >> {output.txt}
         """
 
 rule create_species_matrix:
-    input: rules.combine_species_hits.output
+    input: rules.combine_species_hits.output.out_dir
     output: "results/{database}/final/species_matrix/{database}.txt"
     conda: "../envs/transformation.yml"
     log: "logs/{database}/mmseqs2/hits_90/mmseqs2_hits_90.log"
     shell:
         """
-        echo {output}
+        python workflow/scripts/combine_species.py --output {output} --dir {input} --ext ".txt"
         """
