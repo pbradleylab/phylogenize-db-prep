@@ -42,9 +42,53 @@ rule mmseqs2_convertalis_sam:
      conda: "../envs/transformation.yml"
      shell:
          """
-         mmseqs convertalis {input.query}/{params.query_prefix} \
-            {input.target}/{params.target_prefix} {input.mapped}/{params.prefix} \
-            {output} --format-mode 1
+         mmseqs convertalis \
+             {input.query}/{params.query_prefix} \
+             {input.target}/{params.target_prefix} \
+             {input.mapped}/{params.prefix} \
+             {output} --format-mode 1
+         """
+
+rule mmseqs2_filterdb:
+     input:
+         mapped=rules.mmseqs2_map.output.out_dir
+     output:
+         out_dir=directory("resources/{database}/mmseqs2/filtered/"),
+         index="resources/{database}/mmseqs2/filtered/filtered.index",
+     params:
+         prefix=rules.mmseqs2_map.params.prefix,
+         filtered_prefix="filtered",
+     threads: config["mmseqs2"]["convertalis"]["threads"]
+     conda: "../envs/transformation.yml"
+     shell:
+         """
+         mmseqs filterdb {input.mapped}/{params.prefix} {output.out_dir}/{params.filtered_prefix} --extract-lines 1
+         """
+
+rule mmseqs2_convertalis_blast:
+     input:
+         query=rules.create_mmseqs2_query_db.output.query_path,
+         target=rules.create_mmseqs2_target_db.output.uniprot90_path,
+         map=rules.mmseqs2_map.output.out_dir
+     output: "results/{database}/mmseqs2/convertalis/{database}_convertlis.8"
+     params:
+         prefix=rules.mmseqs2_map.params.prefix,
+         query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
+         target_prefix=rules.create_mmseqs2_target_db.params.uniprot90_prefix
+     threads: config["mmseqs2"]["convertalis"]["threads"]
+     conda: "../envs/transformation.yml"
+     shell:
+         """
+         mmseqs convertalis {input.query}/{params.query_prefix} {input.target}/{params.target_prefix} {input.map}/{params.prefix} {output} --format-mode 4 --format-output query,target,pident
+         """
+
+rule get_top_90_evals:
+     input: rules.mmseqs2_convertalis_blast.output
+     output: "results/{database}/mmseqs2/top_90/{database}_convertlis.tsv"
+     conda: "../envs/transformation.yml"
+     shell:
+         """
+         awk '$3>90 {{print}}' {input} > {output}
          """
 
 # Get all the sequences that are not labeled as unaligned in the .sam
@@ -52,17 +96,13 @@ rule mmseqs2_convertalis_sam:
 # keep header information which results in many downstream errors for
 # programs.
 rule samtools_get_unaligned:
-     input:
-         unmapped=rules.mmseqs2_convertalis_sam.output
-     output: 
-        unmapped="results/{database}/samtools/unaligned/{database}_unaligned.bam",
-        identity_90="results/{database}/samtools/unaligned/{database}_aligned.bam"
+     input: rules.mmseqs2_convertalis_sam.output,
+     output: "results/{database}/samtools/unaligned/{database}_unaligned.bam",
      log: "logs/{database}/samtools/mapping/{database}_map.log"
      conda: "../envs/transformation.yml"
      shell:
          """
-         samtools view -b -f 4 {input} -o {output.unmapped} 2> {log}
-         samtools view -b -F 4 {input} -o {output.identity_90} 2> {log}
+         samtools view -b -f 4 {input} -o {output} 2> {log}
          """
 
 # Convert the unaligned samples to a fasta to build a new database.
@@ -102,25 +142,22 @@ rule create_mmseqs2_unaligned_db:
 # and the unmapped regions to a list of species specific vectors by their centroid.
 rule combine_species_hits:
     input:
-        unmapped=rules.samtools_get_unaligned.output.unmapped,
-        identity_90=rules.samtools_get_unaligned.output.identity_90
-    output: "results/{database}/combined_species_hits/{database}.tsv"
+        unmapped=rules.samtools_get_unaligned.output,
+        identity_90=rules.get_top_90_evals.output
+    output: "results/{database}/mmseqs2/combined_species_hits/{database}.txt"
     conda: "../envs/transformation.yml"
     log: "logs/{database}/mmseqs2/hits_90/mmseqs2_hits_90.log"
     shell:
         """
-        samtools view {input.unmapped} > {output}
-        samtools view {input.identity_90} >> {output}
+        samtools view {input.unmapped} | cut -f1 > {output}
         """
 
 rule create_species_matrix:
-    input:
-        # centroids=rules.concat_centoids.output,
-        species=rules.combine_species_hits.output
-    output: "results/{database}/final/species_matrix/{database}.tsv"
+    input: rules.combine_species_hits.output
+    output: "results/{database}/final/species_matrix/{database}.txt"
     conda: "../envs/transformation.yml"
     log: "logs/{database}/mmseqs2/hits_90/mmseqs2_hits_90.log"
     shell:
         """
-       echo {output}
+        echo {output}
         """
