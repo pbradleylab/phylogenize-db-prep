@@ -49,21 +49,6 @@ rule mmseqs2_convertalis_sam:
              {output} --format-mode 1
          """
 
-rule mmseqs2_filterdb:
-     input:
-         mapped=rules.mmseqs2_map.output.out_dir
-     output:
-         out_dir=directory("resources/{database}/mmseqs2/filtered/"),
-         index="resources/{database}/mmseqs2/filtered/filtered.index",
-     params:
-         prefix=rules.mmseqs2_map.params.prefix,
-         filtered_prefix="filtered",
-     threads: config["mmseqs2"]["convertalis"]["threads"]
-     conda: "../envs/transformation.yml"
-     shell:
-         """
-         mmseqs filterdb {input.mapped}/{params.prefix} {output.out_dir}/{params.filtered_prefix} --extract-lines 1
-         """
 
 rule mmseqs2_convertalis_blast:
      input:
@@ -150,6 +135,7 @@ rule combine_species_hits:
     shell:
         """
         samtools view {input.unmapped} | cut -f1 > {output}
+        cat {input.identity_90} | cut -f1 >> {output}
         """
 
 rule create_species_matrix:
