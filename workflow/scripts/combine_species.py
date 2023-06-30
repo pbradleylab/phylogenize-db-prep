@@ -15,25 +15,24 @@ def main(args):
         centroids_dict={}
         species = [found for found in os.listdir(args.dir) if os.path.isfile(os.path.join(args.dir, found)) and found.endswith(args.ext)]
         # Get pair and unpair files in separate lists
-        for specie in species:
-            frame = pd.read_csv(os.path.join(args.dir, specie), delimiter = '\t')
-            accessions = list(set(["".join(re.split("(\.\d*_)", x)[0:2])[:-1] for x in list(frame.iloc[:, 0])]))
-            centroids = [re.split("\.\d*_", x)[1].split('_')[0] for x in list(frame.iloc[:, 0])]
-            for key in centroids:
-                if not key in centroids_dict.keys():
-                    centroids_dict[key] = []
-                else:
-                    species_lst = centroids_dict[key]
-                    species_lst = species_lst + accessions
-                    centroids_dict[key]=list(set(species_lst))
-        
+        frame = pd.read_csv(os.path.join(args.dir, species[0]), delimiter = '\t')
+        accessions = ["".join(re.split("(\.\d*_)", x)[0:2])[:-1] for x in list(frame.iloc[:, 0])]
+        centroids = [re.split("\.\d*_", x)[1].split('_')[0] for x in list(frame.iloc[:, 0])]
+        for i in range(0,len(centroids)):
+            key=centroids[i]
+            if not key in centroids_dict.keys():
+                centroids_dict[key] = [accessions[i]]
+            else:
+                species_lst = centroids_dict[key]
+                species_lst.append(accessions[i])
+                centroids_dict[key]=list(set(species_lst))
         accessions_frame = pd.DataFrame({"accessions": list(centroids_dict.values())})
         accessions_matrix = accessions_frame['accessions'].apply(pd.value_counts).fillna(0).astype(int)
         ids = list(centroids_dict.keys())
         accessions_matrix.index = ids
         out = accessions_matrix.reindex(sorted(accessions_matrix.columns), axis=1)	
-	
-        out.to_csv(args.output, sep=",", index=None)
+        
+        out.to_csv(args.output, sep=",")
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
