@@ -23,7 +23,7 @@ rule create_mmseqs2_unaligned_db:
         index="resources/{database}/mmseqs2/unmapped/unmapped.index"
     params:
         unaligned_prefix="unmapped"
-    conda: "../envs/database_management.yml"
+    conda: "../envs/clustering.yml"
     log: "logs/{database}/mmseqs2/create_mmseqs2_unaligned/mmseqs2_create_mmseqs2_unaligned.log"
     shell:
         """
@@ -46,7 +46,7 @@ rule mmseqs2_linclust:
          prefix="unaligned_linclust",
          seq_id_precent=config["mmseqs2"]["linclust"]["seq_id_precent"],
          tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"]
-     conda: "../envs/transformation.yml"
+     conda: "../envsclustering.yml"
      log: "logs/{database}/mmseqs2/linclust/mmseqs2_linclust.log"
      threads: config["mmseqs2"]["linclust"]["threads"]
      shell:

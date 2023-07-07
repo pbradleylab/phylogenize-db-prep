@@ -4,7 +4,7 @@ rule create_mmseqs2_target_db:
         uniprot90_path="resources/{database}/uniprot90"
     params:
         uniprot90_prefix="UniRef90",
-    conda: "../envs/database_management.yml"
+    conda: "../envs/target_db.yml"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """

@@ -3,7 +3,7 @@ include: "blast.smk"
 rule get_top_90_evals:
      input: rules.mmseqs2_convertalis_blast.output
      output: "results/{database}/mmseqs2/top_90/{database}_convertlis.tsv"
-     conda: "../envs/transformation.yml"
+     conda: "../envs/matrix.yml"
      shell:
          """
          awk '$3>90 {{print}}' {input} > {output}
@@ -18,7 +18,7 @@ rule combine_species_hits:
     output: 
          txt="results/{database}/mmseqs2/combined_species_hits/{database}.txt",
          out_dir=directory("results/{database}/mmseqs2/combined_species_hits/")
-    conda: "../envs/transformation.yml"
+    conda: "../envs/matrix.yml"
     log: "logs/{database}/mmseqs2/hits_90/mmseqs2_hits_90.log"
     shell:
         """
@@ -31,7 +31,7 @@ rule combine_species_hits:
 rule create_species_matrix:
     input: rules.combine_species_hits.output.out_dir
     output: "results/{database}/final/species_matrix/{database}.txt"
-    conda: "../envs/transformation.yml"
+    conda: "../envs/matrix.yml"
     log: "logs/{database}/mmseqs2/hits_90/mmseqs2_hits_90.log"
     shell:
         """
