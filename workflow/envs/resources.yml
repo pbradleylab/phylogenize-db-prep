@@ -1,7 +1,0 @@
-channels:
-  - anaconda
-  - bioconda
-  - conda-forge
-dependencies:
-  - wget
-  - mmseqs2=14.7e284

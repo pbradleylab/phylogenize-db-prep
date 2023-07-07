@@ -1,6 +1,41 @@
+include: "mapping.smk"
+
+
+rule get_unaligned_sequences:
+    input: 
+        aligned=rules.samtools_fasta.output,
+        all_sequences=rules.combine_fasta.output
+    output: "results/{database}/mapping/unmapped/{database}.fa"
+    conda: "../envs/clustering.yml"
+    shell:
+        """
+        grep '>' {input.aligned} | sed "s/>//g" > /tmp/tmp.0
+        seqkit grep -iv -f /tmp/tmp.0 {input.aligned} > {output}
+        """
+
+# Create a new database that is declared as temporary. This database
+# holds the unaligned peptide sequences that are assumed as potential
+# species specific alignments.
+rule create_mmseqs2_unaligned_db:
+    input: rules.get_unaligned_sequences.output
+    output:
+        out_dir=directory("resources/{database}/mmseqs2/unmapped/"),
+        index="resources/{database}/mmseqs2/unmapped/unmapped.index"
+    params:
+        unaligned_prefix="unmapped"
+    conda: "../envs/database_management.yml"
+    log: "logs/{database}/mmseqs2/create_mmseqs2_unaligned/mmseqs2_create_mmseqs2_unaligned.log"
+    shell:
+        """
+        mkdir -p {output.out_dir}
+        mmseqs createdb {input} {output.out_dir}/{params.unaligned_prefix} \
+            --dbtype 1 2> {log}
+        mmseqs createindex {output.out_dir}/{params.unaligned_prefix} \
+            /tmp 2> {log}
+        """
+
 # Cluster the unaligned protein sequence database from
 # mmseqs' search command.
-#include: "resources.smk"
 rule mmseqs2_linclust:
      input: rules.create_mmseqs2_unaligned_db.output.out_dir
      output:

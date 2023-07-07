@@ -1,8 +1,8 @@
 """ Resources retrieval and any rule relating to the transformation of resource files    
 should be placed here. 
 """
+from scripts.utils import *
 configfile: "config/config.json"
-
 
 def get_mmseqs2_input(wildcards):
     outputLST = []
@@ -12,20 +12,6 @@ def get_mmseqs2_input(wildcards):
         outputLST.append(rules.transeq.output[0].format(database=project, pangenome=subsample))
     return outputLST
 
-rule create_mmseqs2_target_db:
-    output:
-        uniprot90_fasta="resources/{database}/uniprot90/tmp/latest/uniref90.fasta.gz",
-        uniprot90_path="resources/{database}/uniprot90"
-    params:
-        uniprot90_prefix="UniRef90",
-    conda: "../envs/transformation.yml"
-    threads: config["mmseqs2"]["createdb"]["threads"]
-    shell:
-        """
-        mmseqs databases UniRef90 {params.uniprot90_prefix} \
-            {output.uniprot90_path}/{params.uniprot90_prefix} \
-            --threads {threads}
-        """
 
 # Creates a query database, query being the database containing the
 # pangenomes that is being made into a final species level protein
@@ -37,7 +23,7 @@ rule create_mmseqs2_query_db:
         query_path=directory("resources/{database}/custom")
     params:
         query_prefix="custom"
-    conda: "../envs/transformation.yml"
+    conda: "../envs/database_management.yml"
     log: "logs/{database}/custom/{database}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
@@ -45,21 +31,3 @@ rule create_mmseqs2_query_db:
         mmseqs createdb {input} {output.query_path}/{params.query_prefix} --dbtype 1 2> {log}
         mmseqs createindex {output.query_path}/{params.query_prefix} /tmp 2> {log}
         """
-
-# rule download_ughp90:
-#     output: "resources/{database}/uhgp-90.tar.gz"
-#     params:
-#        url=config["target_db"]["uhgp90_url"]
-#     conda: "../envs/resources.yml"
-#     shell:
-#         """
-#         wget -c {params.url} -O {output}
-#         """
-
-# rule unpack_ughp90:
-#     input: rules.download_ughp90.output
-#     output: "resources/{database}/uhgp-90/uhgp-90.faa"
-#     shell:
-#         """
-#         tar -zxvf {input} 
-#         """
