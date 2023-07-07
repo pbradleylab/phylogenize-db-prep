@@ -39,6 +39,7 @@ rule create_mmseqs2_query_db:
         query_prefix="custom"
     conda: "../envs/transformation.yml"
     log: "logs/{database}/custom/{database}.log"
+    threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """
         mmseqs createdb {input} {output.query_path}/{params.query_prefix} --dbtype 1 2> {log}

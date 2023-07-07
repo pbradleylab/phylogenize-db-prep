@@ -25,5 +25,5 @@ rule mmseqs2_map:
          mkdir -p {output.out_dir}
             mmseqs map --threads {threads} {input.query}/{params.query_prefix} \
             {input.target}/{params.target_prefix} {output.out_dir}/{params.prefix} \
-            /tmp/tmp -a 2> {log}
+            /tmp/tmp -a --min-seq-id 0.0 2> {log}
          """

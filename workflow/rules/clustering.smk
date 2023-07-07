@@ -1,8 +1,6 @@
 # Cluster the unaligned protein sequence database from
 # mmseqs' search command.
-include:"clustering.smk"
-include:"transformation.smk"
-
+#include: "resources.smk"
 rule mmseqs2_linclust:
      input: rules.create_mmseqs2_unaligned_db.output.out_dir
      output:

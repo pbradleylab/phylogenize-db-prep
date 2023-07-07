@@ -7,8 +7,7 @@ configfile: "config/config.json"
 configfile: "config/tools.json"
 pepfile: config["pepfile"]
 
-include: "rules/clustering.smk"
+include: "rules/transformation.smk"
 
 rule all:
-    input: 
-        expand(rules.create_species_matrix.output[0], database=pep.sample_table.project.unique().tolist())
+    input: expand(rules.create_species_matrix.output[0], database=pep.sample_table.project.unique().tolist())
