@@ -35,8 +35,7 @@ rule mmseqs2_convertalis_unmapped_blast:
      conda: "../envs/database_management.yml"
      shell:
          """
-         mmseqs convertalis {input.query}/{params.query_prefix} \
+         mmseqs createtsv {input.query}/{params.query_prefix} \
              {input.target}/{params.target_prefix} \
-             {input.cluster}/{params.prefix} {output} --format-mode 4 \
-             --format-output query,target,pident
+             {input.cluster}/{params.prefix} {output}
          """
