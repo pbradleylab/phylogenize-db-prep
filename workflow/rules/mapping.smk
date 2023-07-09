@@ -23,7 +23,7 @@ rule mmseqs2_map:
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
          target_prefix=rules.create_mmseqs2_target_db.params.uniprot90_prefix
      threads: config["mmseqs2"]["map"]["threads"]
-     conda: "../envs/transformation.yml"
+     conda: "../envs/mapping.yml"
      shell:
          """
          mkdir -p {output.out_dir}
@@ -46,7 +46,7 @@ rule mmseqs2_convertalis_sam:
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
          target_prefix=rules.create_mmseqs2_target_db.params.uniprot90_prefix
      threads: config["mmseqs2"]["convertalis"]["threads"]
-     conda: "../envs/database_management.yml"
+     conda: "../envs/mapping.yml"
      shell:
          """
          mmseqs convertalis \
@@ -64,7 +64,7 @@ rule samtools_aligned_bam:
      input: rules.mmseqs2_convertalis_sam.output,
      output: "results/{database}/samtools/unaligned/{database}_unaligned.bam",
      log: "logs/{database}/samtools/mapping/{database}_map.log"
-     conda: "../envs/transformation.yml"
+     conda: "../envs/mapping.yml"
      shell:
          """
          samtools view -b {input} -o {output} 2> {log}
@@ -78,7 +78,7 @@ rule samtools_aligned_bam:
 rule samtools_fasta:
      input: rules.samtools_aligned_bam.output
      output: "results/{database}/samtools/fasta/{database}.fasta"
-     conda: "../envs/transformation.yml"
+     conda: "../envs/mapping.yml"
      shell:
          """
          samtools fasta {input} > {output}
@@ -89,7 +89,7 @@ rule get_aligned_sequences:
          mapped=rules.samtools_fasta.output,
          all_sequences=rules.combine_fasta.output
     output: "results/{database}/samtools/fasta/{database}_unmapped.fasta"
-    conda: "../envs/transformation.yml"
+    conda: "../envs/mapping.yml"
     shell:
          """
          bash workflow/scripts/get_unaligned_sequences.sh {input.mapped} {input.all_sequences} {output}

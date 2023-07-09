@@ -19,7 +19,7 @@ rule transeq:
     params:
         clean=config["transeq"]["convert_missing_to_x"]
     log: "logs/{database}/transeq/{pangenome}.log"
-    conda: "../envs/transformation.yml"
+    conda: "../envs/translation.yml"
     shell:
         """
         transeq {input} {output} -clean {params.clean} 2> {log}
@@ -30,7 +30,7 @@ rule transeq:
 rule combine_fasta:
      input: get_transeq_output
      output: "results/{database}/combine_fasta/{database}.fa"
-     conda: "../envs/transformation.yml"
+     conda: "../envs/translation.yml"
      shell:
          """
          cat {input} > {output}

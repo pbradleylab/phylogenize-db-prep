@@ -12,7 +12,7 @@ rule mmseqs2_convertalis_blast:
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
          target_prefix=rules.create_mmseqs2_target_db.params.uniprot90_prefix
      threads: config["mmseqs2"]["convertalis"]["threads"]
-     conda: "../envs/database_management.yml"
+     conda: "../envs/blast.yml"
      shell:
          """
          mmseqs convertalis {input.query}/{params.query_prefix} \
@@ -32,7 +32,7 @@ rule mmseqs2_convertalis_unmapped_blast:
          query_prefix=rules.create_mmseqs2_unaligned_db.params.unaligned_prefix,
          target_prefix=rules.create_mmseqs2_target_db.params.uniprot90_prefix
      threads: config["mmseqs2"]["convertalis"]["threads"]
-     conda: "../envs/database_management.yml"
+     conda: "../envs/blast.yml"
      shell:
          """
          mmseqs createtsv {input.query}/{params.query_prefix} \

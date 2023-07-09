@@ -23,7 +23,7 @@ rule create_mmseqs2_query_db:
         query_path=directory("resources/{database}/custom")
     params:
         query_prefix="custom"
-    conda: "../envs/database_management.yml"
+    conda: "../envs/query_db.yml"
     log: "logs/{database}/custom/{database}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
