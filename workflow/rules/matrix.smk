@@ -22,8 +22,8 @@ rule combine_species_hits:
     log: "logs/{database}/mmseqs2/hits_90/mmseqs2_hits_90.log"
     shell:
         """
-        cat {input.unmapped} | cut -f1 > {output.txt}
-        cat {input.identity_90} | cut -f1 | sed '1d' >> {output.txt}
+        cat {input.unmapped} | cut -f1,2 > {output.txt}
+        cat {input.identity_90} | cut -f1,2 | sed '1d' >> {output.txt}
         """
 
 # Create a binary matrix of the hits > 90% and those that unmapped 
