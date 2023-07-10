@@ -48,7 +48,7 @@ rule mmseqs2_linclust:
          prefix="unaligned_linclust",
          seq_id_precent=config["mmseqs2"]["linclust"]["seq_id_precent"],
          tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"]
-     conda: "../envsclustering.yml"
+     conda: "../envs/clustering.yml"
      log: "logs/{database}/mmseqs2/linclust/mmseqs2_linclust.log"
      threads: config["mmseqs2"]["linclust"]["threads"]
      shell:
