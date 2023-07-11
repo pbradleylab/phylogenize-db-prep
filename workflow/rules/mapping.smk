@@ -10,18 +10,19 @@ include: "translation.smk"
 # Note: We call params here from previous rules. This method is continued
 #    throughout all subsequent methods for continuety. These can be abstracted
 #    out to a config however it looses some of the automation that way.
+# target=rules.create_uniprot90_target_db.output.uniprot90_path
 rule mmseqs2_map:
      input:
          query=rules.create_mmseqs2_query_db.output.query_path,
-         target=rules.create_mmseqs2_target_db.output.uniprot90_path
+         target=get_target
      output:
-         out_dir=directory("results/{database}/mmseqs2/mapping/"),
-         index="results/{database}/mmseqs2/mapping/{database}_map.index"
-     log: "logs/{database}/mmseqs2/mapping/mmseqs2_map.log"
+         out_dir=directory("results/{database}/"+config["target_db"]["db"]+"/mmseqs2/"+config["target_db"]["db"]+"/mapping/"),
+         index="results/{database}/"+config["target_db"]["db"]+"/mmseqs2/"+config["target_db"]["db"]+"/mapping/{database}_map.index"
+     log: "logs/{database}/"+config["target_db"]["db"]+"/mmseqs2/mapping/mmseqs2_map.log"
      params:
          prefix="{database}_map",
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
-         target_prefix=rules.create_mmseqs2_target_db.params.uniprot90_prefix
+         target_prefix=config["target_db"]["db"]
      threads: config["mmseqs2"]["map"]["threads"]
      conda: "../envs/mapping.yml"
      shell:
@@ -38,13 +39,13 @@ rule mmseqs2_map:
 rule mmseqs2_convertalis_sam:
      input:
          query=rules.create_mmseqs2_query_db.output.query_path,
-         target=rules.create_mmseqs2_target_db.output.uniprot90_path,
+         target=rules.create_uniprot90_target_db.output.uniprot90_path,
          mapped=rules.mmseqs2_map.output.out_dir
-     output: "results/{database}/mmseqs2/convertalis/{database}_convertlis.sam"
+     output: "results/{database}/"+config["target_db"]["db"]+"/mmseqs2/convertalis/{database}_convertlis.sam"
      params:
          prefix=rules.mmseqs2_map.params.prefix,
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
-         target_prefix=rules.create_mmseqs2_target_db.params.uniprot90_prefix
+         target_prefix=rules.create_uniprot90_target_db.params.uniprot90_prefix
      threads: config["mmseqs2"]["convertalis"]["threads"]
      conda: "../envs/mapping.yml"
      shell:
@@ -62,8 +63,8 @@ rule mmseqs2_convertalis_sam:
 # programs.
 rule samtools_aligned_bam:
      input: rules.mmseqs2_convertalis_sam.output,
-     output: "results/{database}/samtools/unaligned/{database}_unaligned.bam",
-     log: "logs/{database}/samtools/mapping/{database}_map.log"
+     output: "results/{database}/"+config["target_db"]["db"]+"/samtools/unaligned/{database}_unaligned.bam",
+     log: "logs/{database}/"+config["target_db"]["db"]+"/samtools/mapping/{database}_map.log"
      conda: "../envs/mapping.yml"
      shell:
          """
@@ -77,7 +78,7 @@ rule samtools_aligned_bam:
 # and not solely based on species sequence homology.
 rule samtools_fasta:
      input: rules.samtools_aligned_bam.output
-     output: "results/{database}/samtools/fasta/{database}.fasta"
+     output: "results/{database}/"+config["target_db"]["db"]+"/samtools/fasta/{database}.fasta"
      conda: "../envs/mapping.yml"
      shell:
          """
@@ -88,7 +89,7 @@ rule get_aligned_sequences:
     input:
          mapped=rules.samtools_fasta.output,
          all_sequences=rules.combine_fasta.output
-    output: "results/{database}/samtools/fasta/{database}_unmapped.fasta"
+    output: "results/{database}/"+config["target_db"]["db"]+"/samtools/fasta/{database}_unmapped.fasta"
     conda: "../envs/mapping.yml"
     shell:
          """
