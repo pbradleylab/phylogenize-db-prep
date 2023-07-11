@@ -5,7 +5,7 @@ rule get_unaligned_sequences:
     input: 
         aligned=rules.samtools_fasta.output,
         all_sequences=rules.combine_fasta.output
-    output: "results/{database}/mapping/unmapped/{database}.fa"
+    output: "results/{database}/"+config["target_db"]["db"]+"/mapping/unmapped/{database}.fa"
     conda: "../envs/clustering.yml"
     shell:
         """
@@ -19,12 +19,12 @@ rule get_unaligned_sequences:
 rule create_mmseqs2_unaligned_db:
     input: rules.get_unaligned_sequences.output
     output:
-        out_dir=directory("resources/{database}/mmseqs2/unmapped/"),
-        index="resources/{database}/mmseqs2/unmapped/unmapped.index"
+        out_dir=directory("resources/{database}/"+config["target_db"]["db"]+"/mmseqs2/unmapped/"),
+        index="resources/{database}/"+config["target_db"]["db"]+"/mmseqs2/unmapped/unmapped.index"
     params:
         unaligned_prefix="unmapped"
     conda: "../envs/clustering.yml"
-    log: "logs/{database}/mmseqs2/create_mmseqs2_unaligned/mmseqs2_create_mmseqs2_unaligned.log"
+    log: "logs/{database}/"+config["target_db"]["db"]+"/mmseqs2/create_mmseqs2_unaligned/mmseqs2_create_mmseqs2_unaligned.log"
     shell:
         """
         mkdir -p {output.out_dir}
@@ -39,15 +39,15 @@ rule create_mmseqs2_unaligned_db:
 rule mmseqs2_linclust:
      input: rules.create_mmseqs2_unaligned_db.output.out_dir
      output:
-         database="results/{database}/mmseqs2/linclust/unaligned_linclust.index",
-         out_dir=directory("results/{database}/mmseqs2/linclust/")
+         database="results/{database}/"+config["target_db"]["db"]+"/mmseqs2/linclust/unaligned_linclust.index",
+         out_dir=directory("results/{database}/"+config["target_db"]["db"]+"/mmseqs2/linclust/")
      params:
          unaligned_prefix=rules.create_mmseqs2_unaligned_db.params.unaligned_prefix,
          prefix="unaligned_linclust",
          seq_id_precent=config["mmseqs2"]["linclust"]["seq_id_precent"],
          tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"]
-     conda: "../envsclustering.yml"
-     log: "logs/{database}/mmseqs2/linclust/mmseqs2_linclust.log"
+     conda: "../envs/clustering.yml"
+     log: "logs/{database}/"+config["target_db"]["db"]+"/mmseqs2/linclust/mmseqs2_linclust.log"
      threads: config["mmseqs2"]["linclust"]["threads"]
      shell:
          """
