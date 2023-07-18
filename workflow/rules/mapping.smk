@@ -2,7 +2,7 @@ include: "query_db.smk"
 include: "target_db.smk"
 include: "translation.smk"
 
-# Map the amino acid sequences by similarity in the UniProt 90 database
+# Map the amino acid sequences by similarity in the UniRef90 database
 # The internal prefilter module is called which is high sensitivity to
 # detect high scores and ungapped alignment. This could be exchanged for
 # the `mmseqs search` command for lower sensitivity.
@@ -10,7 +10,6 @@ include: "translation.smk"
 # Note: We call params here from previous rules. This method is continued
 #    throughout all subsequent methods for continuety. These can be abstracted
 #    out to a config however it looses some of the automation that way.
-# target=rules.create_uniprot90_target_db.output.uniprot90_path
 rule mmseqs2_map:
      input:
          query=rules.create_mmseqs2_query_db.output.query_path,
@@ -39,13 +38,13 @@ rule mmseqs2_map:
 rule mmseqs2_convertalis_sam:
      input:
          query=rules.create_mmseqs2_query_db.output.query_path,
-         target=rules.create_uniprot90_target_db.output.uniprot90_path,
+         target=target=get_target,
          mapped=rules.mmseqs2_map.output.out_dir
      output: "results/{database}/"+config["target_db"]["db"]+"/mmseqs2/convertalis/{database}_convertlis.sam"
      params:
          prefix=rules.mmseqs2_map.params.prefix,
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
-         target_prefix=rules.create_uniprot90_target_db.params.uniprot90_prefix
+         target_prefix=config["target_db"]["db"]
      threads: config["mmseqs2"]["convertalis"]["threads"]
      conda: "../envs/mapping.yml"
      shell:
