@@ -10,7 +10,7 @@ rule get_unaligned_sequences:
     shell:
         """
         grep '>' {input.aligned} | sed "s/>//g" > /tmp/tmp.0
-        seqkit grep -iv -f /tmp/tmp.0 {input.aligned} > {output}
+        seqkit grep -iv -f /tmp/tmp.0 {input.all_sequences} > {output}
         """
 
 # Create a new database that is declared as temporary. This database
@@ -19,8 +19,8 @@ rule get_unaligned_sequences:
 rule create_mmseqs2_unaligned_db:
     input: rules.get_unaligned_sequences.output
     output:
-        out_dir=directory("resources/{database}/"+config["target_db"]["db"]+"/mmseqs2/unmapped/"),
-        index="resources/{database}/"+config["target_db"]["db"]+"/mmseqs2/unmapped/unmapped.index"
+        out_dir=directory("results/{database}/"+config["target_db"]["db"]+"/mmseqs2/unmapped/"),
+        index="results/{database}/"+config["target_db"]["db"]+"/mmseqs2/unmapped/unmapped.index"
     params:
         unaligned_prefix="unmapped"
     conda: "../envs/clustering.yml"
