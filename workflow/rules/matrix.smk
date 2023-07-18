@@ -23,7 +23,7 @@ rule combine_species_hits:
     shell:
         """
         cat {input.unmapped} | cut -f1 > {output.txt}
-        cat {input.identity_90} | cut -f1 >> {output.txt}
+        cat {input.identity_90} | cut -f1 | sed '1d' >> {output.txt}
         """
 
 # Create a binary matrix of the hits > 90% and those that unmapped 
