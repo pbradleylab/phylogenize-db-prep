@@ -28,12 +28,12 @@ rule mmseqs2_map:
      shell:
          """
          mkdir -p {output.out_dir}
-            mmseqs map --threads {threads} {input.query}/{params.query_prefix} \
+         mmseqs map -a --threads {threads} {input.query}/{params.query_prefix} \
             {input.target}/{params.target_prefix} {output.out_dir}/{params.prefix} \
-            /tmp/tmp -a --min-seq-id 0.0 2> {log}
+            /tmp/tmp 2> {log}
          """
 
-# Converts the database's mappings to a sam format. The unmapped (unaligned)
+# Converts the database's mappings to a sam format. The mapped (aligned)
 # sequences are then taken to generate a new database in rule:
 # `samtools_get_aligned`.
 rule mmseqs2_convertalis_sam:
@@ -57,13 +57,13 @@ rule mmseqs2_convertalis_sam:
              {output} --format-mode 1
          """
          
-# Get all the sequences that are not labeled as unaligned in the .sam
+# Get all the sequences that are not labeled as aligned in the .sam
 # file. The output is a bam as to retain headers as samtools doesn't
 # keep header information which results in many downstream errors for
 # programs.
 rule samtools_aligned_bam:
      input: rules.mmseqs2_convertalis_sam.output,
-     output: "results/{database}/"+config["target_db"]["db"]+"/samtools/unaligned/{database}_unaligned.bam",
+     output: "results/{database}/"+config["target_db"]["db"]+"/samtools/aligned/{database}_aligned.bam",
      log: "logs/{database}/"+config["target_db"]["db"]+"/samtools/mapping/{database}_map.log"
      conda: "../envs/mapping.yml"
      shell:
@@ -71,8 +71,8 @@ rule samtools_aligned_bam:
          samtools view -b {input} -o {output} 2> {log}
          """
 
-# Get only the unaligned sequences.
-# Convert the unaligned samples to a fasta to build a new database.
+# Get only the aligned sequences.
+# Convert the aligned samples to a fasta to build a new database.
 # We consider these to be temporary files as we retain the bam for QC
 # afterwards since reads may have failed to align due to other reasons
 # and not solely based on species sequence homology.
@@ -93,5 +93,5 @@ rule get_aligned_sequences:
     conda: "../envs/mapping.yml"
     shell:
          """
-         bash workflow/scripts/get_unaligned_sequences.sh {input.mapped} {input.all_sequences} {output}
+         bash workflow/scripts/get_aligned_sequences.sh {input.mapped} {input.all_sequences} {output}
          """
