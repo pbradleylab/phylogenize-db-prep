@@ -3,7 +3,7 @@ def get_target(wildcards):
     if config["target_db"]["db"].lower() == "uhgp90":
         out = rules.create_uhgp90_target_db.output.outdir
     elif config["target_db"]["db"] == "UniRef90":
-        out = rules.create_uniprot90_target_db.output.uniprot90_path
+        out = rules.create_uniref90_target_db.output.uniref90_path
     return out
 
 
@@ -46,17 +46,18 @@ rule create_uhgp90_target_db:
         mmseqs createindex {params.uhgp90_path}/{params.uhgp90_prefix} /tmp 2> {log}
         """
 
-rule create_uniprot90_target_db:
+rule create_uniref90_target_db:
     output:
-        uniprot90_fasta="resources/{database}/uniprot90/tmp/latest/uniref90.fasta.gz",
-        uniprot90_path="resources/{database}/uniprot90"
+        uniref90_fasta="resources/{database}/UniRef90/latest/uniref90.fasta.gz",
+        uniref90_path=directory("resources/{database}/UniRef90"),
+        uniref90_raw=directory("resources/{database}/UniRef90/raw/")
     params:
-        uniprot90_prefix="UniRef90",
+        uniref90_prefix="UniRef90",
     conda: "../envs/target_db.yml"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """
-        mmseqs databases UniRef90 {params.uniprot90_prefix} \
-            {output.uniprot90_path}/{params.uniprot90_prefix} \
-            --threads {threads}
+        mmseqs databases UniRef90 {output.uniref90_path}/{params.uniref90_prefix} \
+            {output.uniref90_raw} \
+            --threads {threads} --force-reuse
         """
