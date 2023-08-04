@@ -38,7 +38,7 @@ rule mmseqs2_map:
 rule mmseqs2_convertalis_sam:
      input:
          query=rules.create_mmseqs2_query_db.output.query_path,
-         target=target=get_target,
+         target=get_target,
          mapped=rules.mmseqs2_map.output.out_dir
      output: "results/{database}/"+config["target_db"]["db"]+"/mmseqs2/convertalis/{database}_convertlis.sam"
      params:
