@@ -9,8 +9,10 @@ rule get_unaligned_sequences:
     conda: "../envs/clustering.yml"
     shell:
         """
-        grep '>' {input.aligned} | sed "s/>//g" > /tmp/tmp.0
-        seqkit grep -iv -f /tmp/tmp.0 {input.all_sequences} > {output}
+        grep '>' {input.aligned} | sed "s/>//g" > /tmp/tmp.aligned
+        grep '>' {input.all_sequences} | sed "s/>//g" > /tmp/tmp.all
+        grep -F -v -x -f /tmp/tmp.aligned /tmp/tmp.all > /tmp/tmp.unaligned
+        faSomeRecords {input.all_sequences} /tmp/tmp.unaligned {output}
         """
 
 # Create a new database that is declared as temporary. This database

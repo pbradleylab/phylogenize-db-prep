@@ -17,7 +17,7 @@ def main(args):
         # Get pair and unpair files in separate lists
         frame = pd.read_csv(os.path.join(args.dir, species[0]), delimiter = '\t')
         accessions = ["".join(re.split("(\.\d*_)", x)[0:2])[:-1] for x in list(frame.iloc[:, 0])]
-        centroids = [re.split("\.\d*_", x)[1].split('_')[0] for x in list(frame.iloc[:, 0])]
+        centroids = [x for x in list(frame.iloc[:, 1])]
         for i in range(0,len(centroids)):
             key=centroids[i]
             if not key in centroids_dict.keys():
