@@ -27,9 +27,9 @@ rule transeq:
         
 # Combine the fasta that are translated to retrieve the unmapped alignments
 # in later steps.
-rule combine_fasta:
+rule combine_fasta_uniref50:
      input: get_transeq_output
-     output: "results/{database}/combine_fasta/{database}.fa"
+     output: "results/{database}/combine_fasta_uniref50/{database}.fa"
      conda: "../envs/translation.yml"
      shell:
          """

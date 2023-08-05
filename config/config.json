@@ -1,8 +1,10 @@
 {
     "pepfile":"config/pepconfig.yml",
-    "centroids":"test/GTDB/combined_centroids.tsv",
     "target_db":{
-        "db":"uhgp90",
-        "uhgp90_url":"http://ftp.ebi.ac.uk/pub/databases/metagenomics/mgnify_genomes/human-gut/v2.0.1/protein_catalogue/uhgp-90.tar.gz"
+        "uhgp50_url":"http://ftp.ebi.ac.uk/pub/databases/metagenomics/mgnify_genomes/human-gut/v2.0.1/protein_catalogue/uhgp-50.tar.gz",
+        "uniref50_url":"",
+        "skip_db_download":"True",
+        "uhgp50_local_path":"",
+        "uniref50_local_path":""
     }
 }

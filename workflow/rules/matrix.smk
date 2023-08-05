@@ -1,8 +1,18 @@
 include: "blast.smk"
 
-rule get_top_90_evals:
-     input: rules.mmseqs2_convertalis_blast.output
-     output: "results/{database}/"+config["target_db"]["db"]+"/mmseqs2/top_90/{database}_convertlis.tsv"
+
+rule get_top_90_evals_uniref50:
+     input: rules.mmseqs2_convertalis_blast_uniref50_db.output
+     output: "results/{database}/uniref50/mmseqs2/top_90/{database}_convertlis.tsv"
+     conda: "../envs/matrix.yml"
+     shell:
+         """
+         awk '$3>90 {{print}}' {input} > {output}
+         """
+
+rule get_top_90_evals_uhgp50:
+     input: rules.mmseqs2_convertalis_blast_uhgp50_db.output
+     output: "results/{database}/uhgp50/mmseqs2/top_90/{database}_convertlis.tsv"
      conda: "../envs/matrix.yml"
      shell:
          """
@@ -13,17 +23,19 @@ rule get_top_90_evals:
 # and the unmapped regions to a list of species specific vectors by their centroid.
 rule combine_species_hits:
     input:
-        unmapped=rules.mmseqs2_convertalis_unmapped_blast.output,
-        identity_90=rules.get_top_90_evals.output
+        uhgp50_identity_90=rules.get_top_90_evals_uhgp50.output,
+        unmapped=rules.mmseqs2_convertalis_unmapped_blast_uhgp50_db.output,
+        uniref50_identity_90=rules.get_top_90_evals_uniref50.output
     output: 
-         txt="results/{database}/"+config["target_db"]["db"]+"/mmseqs2/combined_species_hits/{database}.txt",
-         out_dir=directory("results/{database}/"+config["target_db"]["db"]+"/mmseqs2/combined_species_hits/")
+         txt="results/{database}/uniref50/mmseqs2/combined_species_hits/{database}.txt",
+         outdir=directory("results/{database}/uniref50/mmseqs2/combined_species_hits/")
     conda: "../envs/matrix.yml"
-    log: "logs/{database}/"+config["target_db"]["db"]+"/mmseqs2/hits_90/mmseqs2_hits_90.log"
+    log: "logs/{database}/uniref50/mmseqs2/hits_90/mmseqs2_hits_90.log"
     shell:
         """
         cat {input.unmapped} | cut -f1,2 > {output.txt}
-        cat {input.identity_90} | cut -f1,2 | sed '1d' >> {output.txt}
+        cat {input.uhgp50_identity_90} | cut -f1,2 | sed '1d' >> {output.txt}
+        cat {input.uniref50_identity_90} | cut -f1,2 | sed '1d' >> {output.txt}
         """
 
 # Combine any database files run in previous iterations together for the final matrix
