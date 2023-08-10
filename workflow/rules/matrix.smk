@@ -7,7 +7,7 @@ rule get_top_90_evals_uniref50:
      conda: "../envs/matrix.yml"
      shell:
          """
-         awk '$3>90 {{print}}' {input} > {output}
+         awk '$3>50 {{print}}' {input} > {output}
          """
 
 rule get_top_90_evals_uhgp50:
@@ -16,7 +16,7 @@ rule get_top_90_evals_uhgp50:
      conda: "../envs/matrix.yml"
      shell:
          """
-         awk '$3>90 {{print}}' {input} > {output}
+         awk '$3>50 {{print}}' {input} > {output}
          """
 
 # Combines species with a 90% or greater identity match to the target database, 
