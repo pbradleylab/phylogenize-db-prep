@@ -30,28 +30,3 @@ rule mmseqs2_map_uniref50:
             {input.target}/{params.target_prefix} {output.outdir}/{params.prefix} \
             --min-seq-id 0.50 /tmp 2> {log}
          """
-
-# Converts the database's mappings to a sam format. The mapped (aligned)
-# sequences are then taken to generate a new database in rule:
-# `samtools_get_aligned`.
-rule get_aligned_uniref50_contigs:
-     input:
-         query=rules.create_mmseqs2_query_db.output.query_path,
-         target=rules.create_uniref50.output.uniref50_path,
-         mapped=rules.mmseqs2_map_uniref50.output.outdir
-     output: "results/{database}/uniref50/mmseqs2/convertalis/{database}_aligned.8"
-     params:
-         prefix=rules.mmseqs2_map_uniref50.params.prefix,
-         query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
-         target_prefix="UniRef50"
-     threads: config["mmseqs2"]["convertalis"]["threads"]
-     conda: "../envs/mapping.yml"
-     shell:
-         """
-         mmseqs convertalis \
-             {input.query}/{params.query_prefix} \
-             {input.target}/{params.target_prefix} \
-             {input.mapped}/{params.prefix} \
-             {output} --format-mode 4 \
-             --format-output query && sed -i '1d' {output}
-         """

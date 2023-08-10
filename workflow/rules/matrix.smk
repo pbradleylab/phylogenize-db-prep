@@ -2,7 +2,7 @@ include: "blast.smk"
 
 
 rule get_top_50_evals_uniref50:
-     input: rules.mmseqs2_convertalis_blast_uniref50_db.output.full
+     input: rules.mmseqs2_convertalis_blast_uniref50_db.output.blast
      output: "results/{database}/uniref50/mmseqs2/top_50/{database}_convertlis.tsv"
      conda: "../envs/matrix.yml"
      shell:
