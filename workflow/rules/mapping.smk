@@ -53,5 +53,5 @@ rule get_aligned_uniref50_contigs:
              {input.target}/{params.target_prefix} \
              {input.mapped}/{params.prefix} \
              {output} --format-mode 4 \
-             --format-output query
+             --format-output query && sed -i '1d' {output}
          """
