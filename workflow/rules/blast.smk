@@ -51,7 +51,7 @@ rule mmseqs2_convertalis_unmapped_blast_uhgp50_db:
      params:
          prefix=rules.mmseqs2_linclust_uhgp50_db.params.prefix,
          query_prefix=rules.create_mmseqs2_unaligned_uhgp50_db.params.unaligned_prefix,
-         target_prefix=rules.create_uhgp50.output
+         target_prefix=rules.create_uhgp50.params.uhgp50_prefix
      threads: config["mmseqs2"]["convertalis"]["threads"]
      conda: "../envs/blast.yml"
      shell:
