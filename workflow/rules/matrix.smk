@@ -11,7 +11,7 @@ rule get_top_50_evals_uniref50:
          """
 
 rule get_top_50_evals_uhgp50:
-     input: rules.mmseqs2_convertalis_blast_uhgp50_db.output
+     input: rules.mmseqs2_convertalis_blast_uhgp50_db.output.blast
      output: "results/{database}/uhgp50/mmseqs2/top_50/{database}_convertlis.tsv"
      conda: "../envs/matrix.yml"
      shell:
