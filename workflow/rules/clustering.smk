@@ -3,15 +3,14 @@ include: "mapping.smk"
 
 rule get_unaligned_uniref50_sequences:
     input: 
-        aligned=rules.samtools_fasta_uniref50.output,
+        aligned=rules.get_aligned_uniref50_contigs.output,
         all_sequences=rules.combine_fasta_uniref50.output
     output: "results/{database}/uniref50/mapping/unmapped/{database}.fa"
     conda: "../envs/clustering.yml"
     shell:
         """
-        grep '>' {input.aligned} | sed "s/>//g" > /tmp/tmp.aligned
         grep '>' {input.all_sequences} | sed "s/>//g" > /tmp/tmp.all
-        grep -F -v -x -f /tmp/tmp.aligned /tmp/tmp.all > /tmp/tmp.unaligned
+        grep -F -v -x -f {input.aligned} /tmp/tmp.all > /tmp/tmp.unaligned
         faSomeRecords {input.all_sequences} /tmp/tmp.unaligned {output}
         """
 
@@ -111,14 +110,14 @@ rule samtools_fasta_uhgp50:
 rule get_unaligned_uhgp50_sequences:
     input: 
         aligned_uhgp50=rules.samtools_fasta_uhgp50.output,
-        aligned_uniref50=rules.samtools_fasta_uniref50.output,
+        aligned_uniref50=rules.get_aligned_uniref50_contigs.output,
         all_sequences=rules.combine_fasta_uniref50.output
     output: "results/{database}/uhgp50/mapping/unmapped/{database}.fa"
     conda: "../envs/clustering.yml"
     shell:
         """
         grep '>' {input.aligned_uhgp50} | sed "s/>//g" > /tmp/tmp.aligned
-        grep '>' {input.aligned_uniref50} | sed "s/>//g" >> /tmp/tmp.aligned
+        cat {input.aligned_uniref50} >> /tmp/tmp.aligned
         grep '>' {input.all_sequences} | sed "s/>//g" > /tmp/tmp.all
         grep -F -v -x -f /tmp/tmp.aligned /tmp/tmp.all > /tmp/tmp.unaligned
         faSomeRecords {input.all_sequences} /tmp/tmp.unaligned {output}

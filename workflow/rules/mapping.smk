@@ -34,7 +34,7 @@ rule mmseqs2_map_uniref50:
 # Converts the database's mappings to a sam format. The mapped (aligned)
 # sequences are then taken to generate a new database in rule:
 # `samtools_get_aligned`.
-rule mmseqs2_convertalis_sam_uniref50:
+rule get_aligned_uniref50_contigs:
      input:
          query=rules.create_mmseqs2_query_db.output.query_path,
          target=rules.create_uniref50.output.uniref50_path,
@@ -53,44 +53,5 @@ rule mmseqs2_convertalis_sam_uniref50:
              {input.target}/{params.target_prefix} \
              {input.mapped}/{params.prefix} \
              {output} --format-mode 4 \
-             --format-output query && sed -i 's/_[[:digit:]]$//g; 1d' {output}
-         """
-
-# Get all the sequences that are not labeled as aligned in the .sam
-# file. The output is a bam as to retain headers as samtools doesn't
-# keep header information which results in many downstream errors for
-# programs.
-rule samtools_aligned_bam_uniref50:
-     input: rules.mmseqs2_convertalis_sam_uniref50.output,
-     output: "results/{database}/uniref50/samtools/aligned/{database}_aligned.bam",
-     log: "logs/{database}/uniref50/samtools/mapping/{database}_map.log"
-     conda: "../envs/mapping.yml"
-     shell:
-         """
-         samtools view -b {input} -o {output} 2> {log}
-         """
-
-# Get only the aligned sequences.
-# Convert the aligned samples to a fasta to build a new database.
-# We consider these to be temporary files as we retain the bam for QC
-# afterwards since reads may have failed to align due to other reasons
-# and not solely based on species sequence homology.
-rule samtools_fasta_uniref50:
-     input: rules.samtools_aligned_bam_uniref50.output
-     output: "results/{database}/uniref50/samtools/fasta/{database}.fasta"
-     conda: "../envs/mapping.yml"
-     shell:
-         """
-         samtools fasta {input} > {output}
-         """
-
-rule get_aligned_sequences:
-    input:
-         mapped=rules.samtools_fasta_uniref50.output,
-         all_sequences=rules.combine_fasta_uniref50.output
-    output: "results/{database}/uniref50/samtools/fasta/{database}_unmapped.fasta"
-    conda: "../envs/mapping.yml"
-    shell:
-         """
-         bash workflow/scripts/get_aligned_sequences.sh {input.mapped} {input.all_sequences} {output}
+             --format-output query
          """
