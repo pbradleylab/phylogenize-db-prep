@@ -57,6 +57,6 @@ rule mmseqs2_convertalis_unmapped_blast_uhgp50_db:
      shell:
          """
          mmseqs createtsv {input.query}/{params.query_prefix} \
-             {input.target}/{params.target_prefix} \
+             {input.query}/{params.query_prefix} \
              {input.cluster}/{params.prefix} {output}
          """

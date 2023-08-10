@@ -59,7 +59,6 @@ rule create_species_matrix:
     input: rules.combine_hits.output.outdir
     output: "results/{database}/final/species_matrix/{database}.txt"
     conda: "../envs/matrix.yml"
-    log: "logs/{database}/mmseqs2/hits_50/mmseqs2_hits_50.log"
     shell:
         """
         python workflow/scripts/combine_species.py \

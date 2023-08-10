@@ -32,7 +32,7 @@ def main(args):
         ids = list(centroids_dict.keys())
         accessions_matrix.index = ids
         out = accessions_matrix.reindex(sorted(accessions_matrix.columns), axis=1)	
-        #out.to_csv(args.output, sep=",", index=None)
+        out.to_csv(args.output, sep=",")
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
