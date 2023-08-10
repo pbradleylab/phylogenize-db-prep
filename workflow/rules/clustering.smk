@@ -3,7 +3,7 @@ include: "mapping.smk"
 
 rule get_unaligned_uniref50_sequences:
     input: 
-        aligned=rules.get_aligned_uniref50_contigs.output,
+        aligned=rules.mmseqs2_convertalis_blast_uniref50_db.output.list,
         all_sequences=rules.combine_fasta_uniref50.output
     output: "results/{database}/uniref50/mapping/unmapped/{database}.fa"
     conda: "../envs/clustering.yml"
@@ -81,7 +81,7 @@ rule get_aligned_uhgp50_contigs:
 rule get_unaligned_uhgp50_sequences:
     input: 
         aligned_uhgp50=rules.get_aligned_uhgp50_contigs.output,
-        aligned_uniref50=rules.get_aligned_uniref50_contigs.output,
+        aligned_uniref50=rules.mmseqs2_convertalis_blast_uniref50_db.output.list,
         all_sequences=rules.combine_fasta_uniref50.output
     output: "results/{database}/uhgp50/mapping/unmapped/{database}.fa"
     conda: "../envs/clustering.yml"

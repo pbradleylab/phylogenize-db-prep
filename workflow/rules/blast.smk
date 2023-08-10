@@ -7,7 +7,9 @@ rule mmseqs2_convertalis_blast_uniref50_db:
          query=rules.create_mmseqs2_query_db.output.query_path,
          target=rules.create_uniref50.output.uniref50_path,
          map=rules.mmseqs2_map_uniref50.output.outdir
-     output: "results/{database}/uniref50/mmseqs2/convertalis/{database}_convertlis.8"
+     output: 
+         blast="results/{database}/uniref50/mmseqs2/convertalis/{database}_convertlis.8",
+         list="results/{database}/uniref50/mmseqs2/convertalis/{database}_convertlis.list"
      params:
          prefix=rules.mmseqs2_map_uniref50.params.prefix,
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
@@ -18,8 +20,9 @@ rule mmseqs2_convertalis_blast_uniref50_db:
          """
          mmseqs convertalis {input.query}/{params.query_prefix} \
              {input.target}/{params.target_prefix} \
-             {input.map}/{params.prefix} {output} --format-mode 4 \
+             {input.map}/{params.prefix} {output.blast} --format-mode 4 \
              --format-output query,target,pident
+        cut -f2 {output.blast} | sed '1d' > {output.list}
          """
 
 rule mmseqs2_convertalis_blast_uhgp50_db:
