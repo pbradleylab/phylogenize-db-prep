@@ -46,7 +46,7 @@ rule mmseqs2_map_uhgp50:
      log: "logs/{database}/uhgp50/mmseqs2/mapping/mmseqs2_map.log"
      params:
          prefix="{database}_map",
-         query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
+         query_prefix=rules.create_mmseqs2_unaligned_uniref50_db.params.unaligned_prefix,
          target_prefix="uhgp50"
      threads: config["mmseqs2"]["map"]["threads"]
      conda: "../envs/mapping.yml"

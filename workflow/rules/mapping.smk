@@ -21,7 +21,7 @@ rule mmseqs2_map_uniref50:
      params:
          prefix="{database}_map",
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
-         target_prefix="uniref50"
+         target_prefix="UniRef50"
      threads: config["mmseqs2"]["map"]["threads"]
      conda: "../envs/mapping.yml"
      shell:
@@ -37,13 +37,13 @@ rule mmseqs2_map_uniref50:
 rule mmseqs2_convertalis_sam_uniref50:
      input:
          query=rules.create_mmseqs2_query_db.output.query_path,
-         target=rules.create_uniref50.output,
+         target=rules.create_uniref50.output.uniref50_path,
          mapped=rules.mmseqs2_map_uniref50.output.outdir
      output: "results/{database}/uniref50/mmseqs2/convertalis/{database}_convertlis.sam"
      params:
          prefix=rules.mmseqs2_map_uniref50.params.prefix,
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
-         target_prefix="uniref50"
+         target_prefix="UniRef50"
      threads: config["mmseqs2"]["convertalis"]["threads"]
      conda: "../envs/mapping.yml"
      shell:

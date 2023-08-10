@@ -27,9 +27,8 @@ rule unpack_uhgp50:
         """
 
 rule create_uhgp50:
-    input:
-        uhgp50_fasta=rules.unpack_uhgp50.output.fasta
-    output: directory("resources/uhgp50/")
+    input: rules.unpack_uhgp50.output.fasta
+    output: directory("resources/uhgp50")
     params:
         uhgp50_prefix="uhgp50",
         uhgp50_path="resources/uhgp50/"
@@ -38,6 +37,7 @@ rule create_uhgp50:
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """
+        mkdir -p {params.uhgp50_path}
         mmseqs createdb {input} {params.uhgp50_path}/{params.uhgp50_prefix} --dbtype 1 2> {log}
         """
 
@@ -59,7 +59,6 @@ rule index_uhgp50:
 
 rule create_uniref50:
     output:
-        uniref50_fasta="resources/{database}/UniRef50/latest/uniref50.fasta.gz",
         uniref50_path=directory("resources/{database}/UniRef50"),
         uniref50_raw=directory("resources/{database}/UniRef50/raw/")
     params:
@@ -68,7 +67,8 @@ rule create_uniref50:
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """
-        mmseqs databases uniref50 {output.uniref50_path}/{params.uniref50_prefix} \
+        mmseqs databases {params.uniref50_prefix} \
+            {output.uniref50_path}/{params.uniref50_prefix} \
             {output.uniref50_raw} \
-            --threads {threads} --force-reuse
+            --threads {threads}
         """
