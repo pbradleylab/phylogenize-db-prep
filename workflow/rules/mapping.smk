@@ -39,7 +39,7 @@ rule mmseqs2_convertalis_sam_uniref50:
          query=rules.create_mmseqs2_query_db.output.query_path,
          target=rules.create_uniref50.output.uniref50_path,
          mapped=rules.mmseqs2_map_uniref50.output.outdir
-     output: "results/{database}/uniref50/mmseqs2/convertalis/{database}_convertlis.sam"
+     output: "results/{database}/uniref50/mmseqs2/convertalis/{database}_aligned.8"
      params:
          prefix=rules.mmseqs2_map_uniref50.params.prefix,
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
@@ -52,7 +52,8 @@ rule mmseqs2_convertalis_sam_uniref50:
              {input.query}/{params.query_prefix} \
              {input.target}/{params.target_prefix} \
              {input.mapped}/{params.prefix} \
-             {output} --format-mode 1
+             {output} --format-mode 4 \
+             --format-output query && sed -i 's/_[[:digit:]]$//g; 1d' {output}
          """
 
 # Get all the sequences that are not labeled as aligned in the .sam

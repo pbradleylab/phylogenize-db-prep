@@ -62,7 +62,7 @@ rule mmseqs2_convertalis_sam_uhgp50:
          query=rules.create_mmseqs2_query_db.output.query_path,
          target=rules.create_uhgp50.output,
          mapped=rules.mmseqs2_map_uhgp50.output.outdir
-     output: "results/{database}/uhgp50/mmseqs2/convertalis/{database}_convertlis.sam"
+     output: "results/{database}/uhgp50/mmseqs2/convertalis/{database}_aligned.sam"
      params:
          prefix=rules.mmseqs2_map_uhgp50.params.prefix,
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
@@ -75,7 +75,8 @@ rule mmseqs2_convertalis_sam_uhgp50:
              {input.query}/{params.query_prefix} \
              {input.target}/{params.target_prefix} \
              {input.mapped}/{params.prefix} \
-             {output} --format-mode 1
+             {output} --format-mode 4 \
+             --format-output query,target,pident,qseq,tseq
          """
 
 # Get all the sequences that are not labeled as aligned in the .sam
