@@ -20,19 +20,29 @@ rule mmseqs2_convertalis_blast_uniref50_db:
              {input.target}/{params.target_prefix} \
              {input.map}/{params.prefix} {output.blast} --format-mode 4 \
              --format-output query,target,pident
-        cut -f2 {output.blast} | sed '1d' > {output.list}
+         cut -f1 {output.blast} | sed '1d' > {output.list}
+         """
+
+rule get_top_50_evals_uniref50:
+     input: rules.mmseqs2_convertalis_blast_uniref50_db.output.blast
+     output: "results/{database}/uniref50/mmseqs2/top_50/{database}_convertlis.tsv"
+     conda: "../envs/matrix.yml"
+     shell:
+         """
+         awk '$3>50 {{print}}' {input} > {output}
          """
 
 rule get_unaligned_uniref50_sequences:
     input: 
-        aligned=rules.mmseqs2_convertalis_blast_uniref50_db.output.list,
+        aligned=rules.get_top_50_evals_uniref50.output,
         all_sequences=rules.combine_fasta_uniref50.output
     output: "results/{database}/uniref50/mapping/unmapped/{database}.fa"
     conda: "../envs/clustering.yml"
     shell:
         """
+        cut -f1 {input.aligned} | sed '1d' | uniq > /tmp/tmp.aligned
         grep '>' {input.all_sequences} | sed "s/>//g" > /tmp/tmp.all
-        grep -F -v -x -f {input.aligned} /tmp/tmp.all > /tmp/tmp.unaligned
+        grep -F -v -x -f /tmp/tmp.aligned /tmp/tmp.all > /tmp/tmp.unaligned
         faSomeRecords {input.all_sequences} /tmp/tmp.unaligned {output}
         """
 
@@ -80,7 +90,7 @@ rule mmseqs2_map_uhgp50:
 
 rule mmseqs2_convertalis_blast_uhgp50_db:
      input:
-         query=rules.create_mmseqs2_query_db.output.query_path,
+         query=rules.create_mmseqs2_unaligned_uniref50_db.output.outdir,
          target=rules.create_uhgp50.output,
          map=rules.mmseqs2_map_uhgp50.output.outdir
      output: 
@@ -88,7 +98,7 @@ rule mmseqs2_convertalis_blast_uhgp50_db:
          list="results/{database}/uhgp50/mmseqs2/convertalis/{database}_convertlis.list"
      params:
          prefix=rules.mmseqs2_map_uhgp50.params.prefix,
-         query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
+         query_prefix=rules.create_mmseqs2_unaligned_uniref50_db.params.unaligned_prefix,
          target_prefix=rules.create_uhgp50.output
      threads: config["mmseqs2"]["convertalis"]["threads"]
      conda: "../envs/blast.yml"
@@ -98,21 +108,30 @@ rule mmseqs2_convertalis_blast_uhgp50_db:
              {input.target}/uhgp50 \
              {input.map}/{params.prefix} {output.blast} --format-mode 4 \
              --format-output query,target,pident
-        cut -f2 {output.blast} | sed '1d' > {output.list}
+         cut -f1 {output.blast} | sed '1d' > {output.list}
+         """
+
+rule get_top_50_evals_uhgp50:
+     input: rules.mmseqs2_convertalis_blast_uhgp50_db.output.blast
+     output: "results/{database}/uhgp50/mmseqs2/top_50/{database}_convertlis.tsv"
+     conda: "../envs/matrix.yml"
+     shell:
+         """
+         awk '$3>50 {{print}}' {input} > {output}
          """
 
 rule get_unaligned_uhgp50_sequences:
     input: 
-        aligned_uhgp50=rules.mmseqs2_convertalis_blast_uhgp50_db.output.list,
-        aligned_uniref50=rules.mmseqs2_convertalis_blast_uniref50_db.output.list,
-        all_sequences=rules.combine_fasta_uniref50.output
+        aligned_uhgp50=rules.get_top_50_evals_uhgp50.output,
+        aligned_uniref50=rules.get_top_50_evals_uniref50.output,
+        all_sequences=rules.get_unaligned_uniref50_sequences.output
     output: "results/{database}/uhgp50/mapping/unmapped/{database}.fa"
     conda: "../envs/clustering.yml"
     shell:
         """
-        cat {input.aligned_uniref50} {input.aligned_uhgp50} > /tmp/tmp.aligned
-        grep '>' {input.all_sequences} | sed "s/>//g" > /tmp/tmp.all
-        grep -F -v -x -f /tmp/tmp.aligned /tmp/tmp.all > /tmp/tmp.unaligned
+        cut -f1 {input.aligned_uhgp50} | sed '1d' | uniq > /tmp/tmp.aligned
+        grep '>' {input.all_sequences} | sed "s/>//g" | uniq > /tmp/tmp.all
+        grep -F -v -x -f /tmp/tmp.aligned /tmp/tmp.all | uniq > /tmp/tmp.unaligned
         faSomeRecords {input.all_sequences} /tmp/tmp.unaligned {output}
         """
 

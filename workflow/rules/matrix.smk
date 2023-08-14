@@ -1,24 +1,6 @@
 include: "blast.smk"
 
 
-rule get_top_50_evals_uniref50:
-     input: rules.mmseqs2_convertalis_blast_uniref50_db.output.blast
-     output: "results/{database}/uniref50/mmseqs2/top_50/{database}_convertlis.tsv"
-     conda: "../envs/matrix.yml"
-     shell:
-         """
-         awk '$3>50 {{print}}' {input} > {output}
-         """
-
-rule get_top_50_evals_uhgp50:
-     input: rules.mmseqs2_convertalis_blast_uhgp50_db.output.blast
-     output: "results/{database}/uhgp50/mmseqs2/top_50/{database}_convertlis.tsv"
-     conda: "../envs/matrix.yml"
-     shell:
-         """
-         awk '$3>50 {{print}}' {input} > {output}
-         """
-
 # Combines species with a 90% or greater identity match to the target database, 
 # and the unmapped regions to a list of species specific vectors by their centroid.
 rule combine_species_hits:
