@@ -2,20 +2,14 @@ include: "clustering.smk"
 include: "mapping.smk"
 
 rule mmseqs2_convertalis_unmapped_blast_uhgp50_db:
-     input:
-         query=rules.create_mmseqs2_unaligned_uhgp50_db.output.outdir,
-         target=rules.create_mmseqs2_unaligned_uhgp50_db.output.outdir,
-         cluster=rules.mmseqs2_linclust_uhgp50_db.output.outdir
-     output: "results/{database}/uhgp50/mmseqs2/convertalis/unaligned/{database}_convertlis.8"
+     input:rules.mmseqs2_createsubdb_uhgp50.output.outdir
+     output:"results/{database}/uhgp50/mmseqs2/convert2fasta/{database}_convertlis.txt"
      params:
-         prefix=rules.mmseqs2_linclust_uhgp50_db.params.prefix,
-         query_prefix=rules.create_mmseqs2_unaligned_uhgp50_db.params.unaligned_prefix,
-         target_prefix=rules.create_mmseqs2_unaligned_uhgp50_db.params.unaligned_prefix
-     threads: config["mmseqs2"]["convertalis"]["threads"]
+         prefix=rules.mmseqs2_createsubdb_uhgp50.params.prefix,
      conda: "../envs/blast.yml"
      shell:
          """
-         mmseqs createtsv {input.query}/{params.query_prefix} \
-             {input.query}/{params.query_prefix} \
-             {input.cluster}/{params.prefix} {output}
+         mmseqs convert2fasta {input}/{params.prefix} /tmp/tmp.fa
+         grep '>' /tmp/tmp.fa | sed 's/>//g' > /tmp/tmp.3
+         paste /tmp/tmp.3 /tmp/tmp.3 > {output}
          """

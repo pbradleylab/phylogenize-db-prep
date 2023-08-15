@@ -5,9 +5,9 @@ include: "blast.smk"
 # and the unmapped regions to a list of species specific vectors by their centroid.
 rule combine_species_hits:
     input:
-        uhgp50_identity_50=rules.get_top_50_evals_uhgp50.output,
+        uhgp50_identity_50=rules.get_top_50_evals_uhgp50.output.tophits,
         unmapped=rules.mmseqs2_convertalis_unmapped_blast_uhgp50_db.output,
-        uniref50_identity_50=rules.get_top_50_evals_uniref50.output
+        uniref50_identity_50=rules.get_top_50_evals_uniref50.output.tophits
     output: 
          txt="results/{database}/uniref50/mmseqs2/combined_species_hits/{database}.txt",
          outdir=directory("results/{database}/uniref50/mmseqs2/combined_species_hits/")

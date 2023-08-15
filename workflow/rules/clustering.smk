@@ -25,16 +25,20 @@ rule mmseqs2_convertalis_blast_uniref50_db:
 
 rule get_top_50_evals_uniref50:
      input: rules.mmseqs2_convertalis_blast_uniref50_db.output.blast
-     output: "results/{database}/uniref50/mmseqs2/top_50/{database}_convertlis.tsv"
+     output: 
+         unfiltered="results/{database}/uniref50/mmseqs2/top_50/{database}_convertlis.tsv",
+         tophits="results/{database}/uniref50/mmseqs2/top_50/{database}_convertlis_tophits.tsv"
      conda: "../envs/matrix.yml"
      shell:
          """
-         awk '$3>50 {{print}}' {input} > {output}
+         touch {output.unfiltered}
+         awk '$3>50 {{print}}' {input} > {output.unfiltered}
+         python workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
          """
 
 rule get_unaligned_uniref50_sequences:
     input: 
-        aligned=rules.get_top_50_evals_uniref50.output,
+        aligned=rules.get_top_50_evals_uniref50.output.unfiltered,
         all_sequences=rules.combine_fasta_uniref50.output
     output: "results/{database}/uniref50/mapping/unmapped/{database}.fa"
     conda: "../envs/clustering.yml"
@@ -113,17 +117,20 @@ rule mmseqs2_convertalis_blast_uhgp50_db:
 
 rule get_top_50_evals_uhgp50:
      input: rules.mmseqs2_convertalis_blast_uhgp50_db.output.blast
-     output: "results/{database}/uhgp50/mmseqs2/top_50/{database}_convertlis.tsv"
+     output: 
+         unfiltered="results/{database}/uhgp50/mmseqs2/top_50/{database}_convertlis.tsv",
+         tophits="results/{database}/uhgp50/mmseqs2/top_50/{database}_convertlis_tophits.tsv"
      conda: "../envs/matrix.yml"
      shell:
          """
          awk '$3>50 {{print}}' {input} > {output}
+         python workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
          """
 
 rule get_unaligned_uhgp50_sequences:
     input: 
-        aligned_uhgp50=rules.get_top_50_evals_uhgp50.output,
-        aligned_uniref50=rules.get_top_50_evals_uniref50.output,
+        aligned_uhgp50=rules.get_top_50_evals_uhgp50.output.unfiltered,
+        aligned_uniref50=rules.get_top_50_evals_uniref50.output.unfiltered,
         all_sequences=rules.get_unaligned_uniref50_sequences.output
     output: "results/{database}/uhgp50/mapping/unmapped/{database}.fa"
     conda: "../envs/clustering.yml"
@@ -176,4 +183,24 @@ rule mmseqs2_linclust_uhgp50_db:
          mmseqs linclust {input}/{params.unaligned_prefix} {output.outdir}/{params.prefix} \
             {params.tmp_dir} --min-seq-id {params.seq_id_precent} \
             --threads {threads} 2> {log}
+         """
+
+rule mmseqs2_createsubdb_uhgp50:
+     input:
+         unaligned=rules.create_mmseqs2_unaligned_uhgp50_db.output.outdir,
+         linclust=rules.mmseqs2_linclust_uhgp50_db.output.outdir
+     output:
+         outdir=directory("results/{database}/uhgp50/mmseqs2/creadsubdb/")
+     params:
+         linclust_prefix=rules.mmseqs2_linclust_uhgp50_db.params.prefix,
+         unaligned_prefix=rules.create_mmseqs2_unaligned_uhgp50_db.params.unaligned_prefix,
+         prefix="unaligned_linclust_rep"
+     conda: "../envs/clustering.yml"
+     log: "logs/{database}/uhgp50/mmseqs2/createsubdb/mmseqs2_linclust.log"
+     shell:
+         """
+         mkdir -p {output.outdir}
+         mmseqs createsubdb {input.linclust}/{params.linclust_prefix} \
+            {input.unaligned}/{params.unaligned_prefix} \
+            {output.outdir}/{params.prefix} 2> {log}
          """

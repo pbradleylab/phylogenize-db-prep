@@ -24,7 +24,7 @@ def main(args):
             if not key in centroids_dict.keys():
                 centroids_dict[key] = [accessions[i]]
             else:
-                species_lst = centroids_dict[key]
+                spmain(args.species_lst = centroids_dict[key]
                 species_lst.append(accessions[i])
                 centroids_dict[key]=list(set(species_lst))
         accessions_frame = pd.DataFrame({"accessions": list(centroids_dict.values())})
@@ -36,7 +36,7 @@ def main(args):
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
-        parser.add_argument("--output","-i",
+        parser.add_argument("--output","-o",
                 help = "The matrix file to write to")
         parser.add_argument("--dir","-d",
                 help = "Directory containing all the files to combine")
