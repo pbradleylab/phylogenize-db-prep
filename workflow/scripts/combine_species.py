@@ -17,7 +17,8 @@ def main(args):
         # Get pair and unpair files in separate lists
         frame = pd.read_csv(os.path.join(args.dir, species[0]), delimiter = '\t')
         accessions = ["".join(re.split("(\.\d*_)", x)[0:2])[:-1] for x in list(frame.iloc[:, 0])]
-        centroids = [x for x in list(frame.iloc[:, 1])]
+        #centroids = [re.split("\.\d*_", x)[1].split('_')[0] for x in list(frame.iloc[:, 0])]
+        centroids = list(frame.iloc[:, 1])
         for i in range(0,len(centroids)):
             key=centroids[i]
             if not key in centroids_dict.keys():
@@ -31,12 +32,11 @@ def main(args):
         ids = list(centroids_dict.keys())
         accessions_matrix.index = ids
         out = accessions_matrix.reindex(sorted(accessions_matrix.columns), axis=1)	
-        
         out.to_csv(args.output, sep=",")
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
-        parser.add_argument("--output","-i",
+        parser.add_argument("--output","-o",
                 help = "The matrix file to write to")
         parser.add_argument("--dir","-d",
                 help = "Directory containing all the files to combine")

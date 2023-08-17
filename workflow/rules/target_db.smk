@@ -1,26 +1,24 @@
-def get_target(wildcards):
-    out=[]
-    if config["target_db"]["db"].lower() == "uhgp90":
-        out = rules.create_uhgp90_target_db.output.outdir
-    elif config["target_db"]["db"] == "UniRef90":
-        out = rules.create_uniprot90_target_db.output.uniprot90_path
-    return out
+""" Create the input databases for UHGP50 and UniRef50. UniRef50 will be used to map and cluster
+the database and then the sequences that are not found at a 50% sequence identity are mapped
+against UHGP50.
 
+By Kathryn Kananen
+"""
 
-rule download_uhgp90:
-    output: "resources/uhgp-90.tar.gz"
+rule download_uhgp50:
+    output: "resources/uhgp-50.tar.gz"
     params:
-       url=config["target_db"]["uhgp90_url"]
+       url=config["target_db"]["uhgp50_url"]
     conda:"../envs/target_db.yml"
     shell:
         """
         wget -c {params.url} -O {output}
         """
 
-rule unpack_uhgp90:
-    input: rules.download_uhgp90.output
+rule unpack_uhgp50:
+    input: rules.download_uhgp50.output
     output: 
-        fasta="resources/references/uhgp/uhgp-90/uhgp-90.faa"
+        fasta="resources/references/uhgp/uhgp-50/uhgp-50.faa"
     params:
         outdir=directory("resources/references/uhgp/")
     shell:
@@ -28,35 +26,49 @@ rule unpack_uhgp90:
         tar -zxvf {input} -C {params.outdir}
         """
 
-rule create_uhgp90_target_db:
-    input:
-        uhgp90_fasta=rules.unpack_uhgp90.output.fasta
-    output:
-        index="resources/uhgp90/uhgp90.index",
-        outdir=directory("resources/uhgp90/")
+rule create_uhgp50:
+    input: rules.unpack_uhgp50.output.fasta
+    output: directory("resources/uhgp50")
     params:
-        uhgp90_prefix="uhgp90",
-        uhgp90_path="resources/uhgp90/"
-    log: "logs/uhgp90/createdb/uhgp90.log"
+        uhgp50_prefix="uhgp50",
+        uhgp50_path="resources/uhgp50/"
+    log: "logs/uhgp50/createdb/create_uhgp50/uhgp50.log"
     conda: "../envs/target_db.yml"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """
-        mmseqs createdb {input} {params.uhgp90_path}/{params.uhgp90_prefix} --dbtype 1 2> {log}
-        mmseqs createindex {params.uhgp90_path}/{params.uhgp90_prefix} /tmp 2> {log}
+        mkdir -p {params.uhgp50_path}
+        mmseqs createdb {input} {params.uhgp50_path}/{params.uhgp50_prefix} --dbtype 1 2> {log}
         """
 
-rule create_uniprot90_target_db:
+rule index_uhgp50:
+    input:
+        uhgp50_fasta=rules.unpack_uhgp50.output.fasta
     output:
-        uniprot90_fasta="resources/{database}/uniprot90/tmp/latest/uniref90.fasta.gz",
-        uniprot90_path="resources/{database}/uniprot90"
+        index="resources/uhgp50/uhgp50.index"
     params:
-        uniprot90_prefix="UniRef90",
+        uhgp50_prefix="uhgp50",
+        uhgp50_path="resources/uhgp50/"
+    log: "logs/uhgp50/createdb/uhgp50/index_uhgp50.log"
     conda: "../envs/target_db.yml"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """
-        mmseqs databases UniRef90 {params.uniprot90_prefix} \
-            {output.uniprot90_path}/{params.uniprot90_prefix} \
+        mmseqs createindex {params.uhgp50_path}/{params.uhgp50_prefix} /tmp 2> {log}
+        """
+
+rule create_uniref50:
+    output:
+        uniref50_path=directory("resources/{database}/UniRef50"),
+        uniref50_raw=directory("resources/{database}/UniRef50/raw/")
+    params:
+        uniref50_prefix="UniRef50",
+    conda: "../envs/target_db.yml"
+    threads: config["mmseqs2"]["createdb"]["threads"]
+    shell:
+        """
+        mmseqs databases {params.uniref50_prefix} \
+            {output.uniref50_path}/{params.uniref50_prefix} \
+            {output.uniref50_raw} \
             --threads {threads}
         """
