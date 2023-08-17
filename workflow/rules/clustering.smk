@@ -123,7 +123,8 @@ rule get_top_50_evals_uhgp50:
      conda: "../envs/matrix.yml"
      shell:
          """
-         awk '$3>50 {{print}}' {input} > {output}
+         touch {output.unfiltered}
+         awk '$3>50 {{print}}' {input} > {output.unfiltered}
          python workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
          """
 

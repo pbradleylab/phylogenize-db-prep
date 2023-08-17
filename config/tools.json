@@ -14,7 +14,7 @@
         },
         "linclust":{
             "threads":32,
-            "seq_id_precent":0.9,
+            "seq_id_precent":0.0,
             "tmp_dir":"tmp90"
         }
     },

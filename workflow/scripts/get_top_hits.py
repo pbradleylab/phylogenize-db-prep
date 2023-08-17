@@ -5,7 +5,7 @@ import argparse
 def main(args):
 	frame = pd.read_csv(args.input, sep='\t')
 	frame = frame.loc[frame.groupby(["query"])["pident"].idxmax()]
-	frame.to_csv(args.output, sep='\t', header=None)
+	frame.to_csv(args.output, sep='\t', index=None, header=None)
 	
 
 if __name__ == "__main__":

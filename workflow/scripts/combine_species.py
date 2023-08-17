@@ -24,7 +24,7 @@ def main(args):
             if not key in centroids_dict.keys():
                 centroids_dict[key] = [accessions[i]]
             else:
-                spmain(args.species_lst = centroids_dict[key]
+                species_lst = centroids_dict[key]
                 species_lst.append(accessions[i])
                 centroids_dict[key]=list(set(species_lst))
         accessions_frame = pd.DataFrame({"accessions": list(centroids_dict.values())})
