@@ -26,7 +26,7 @@ rule mmseqs2_map_uniref50:
      conda: "../envs/mapping.yml"
      shell:
          """
-         mmseqs map -a --threads {threads} {input.query}/{params.query_prefix} \
+         mmseqs seach --threads {threads} {input.query}/{params.query_prefix} \
             {input.target}/{params.target_prefix} {output.outdir}/{params.prefix} \
-            --min-seq-id 0.50 /tmp 2> {log}
+            /tmp --min-seq-id 0.50 2> {log}
          """

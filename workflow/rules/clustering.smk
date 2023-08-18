@@ -87,9 +87,9 @@ rule mmseqs2_map_uhgp50:
      conda: "../envs/mapping.yml"
      shell:
          """
-         mmseqs map -a --threads {threads} {input.query}/{params.query_prefix} \
+         mmseqs map --threads {threads} {input.query}/{params.query_prefix} \
             {input.target}/{params.target_prefix} {output.outdir}/{params.prefix} \
-            --min-seq-id 0.50 /tmp 2> {log}
+            /tmp --min-seq-id 0.50 2> {log}
          """
 
 rule mmseqs2_convertalis_blast_uhgp50_db:
@@ -125,7 +125,7 @@ rule get_top_50_evals_uhgp50:
          """
          touch {output.unfiltered}
          awk '$3>50 {{print}}' {input} > {output.unfiltered}
-         python workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
+         python3 workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
          """
 
 rule get_unaligned_uhgp50_sequences:
