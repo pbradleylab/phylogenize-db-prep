@@ -76,8 +76,8 @@ rule mmseqs2_map_uhgp50:
          query=rules.create_mmseqs2_unaligned_uniref50_db.output.outdir,
          target=rules.create_uhgp50.params.uhgp50_path
      output:
-         outdir=directory("results/{database}/mmseqs2/uhgp50/mapping/"),
-         index="results/{database}/mmseqs2/uhgp50/mapping/{database}_map.index"
+         outdir=directory("results/{database}/uhgp50/mmseqs2/mapping/"),
+         index="results/{database}/uhgp50/mmseqs2/mapping/{database}_map.index"
      log: "logs/{database}/uhgp50/mmseqs2/mapping/mmseqs2_map.log"
      params:
          prefix="{database}_map",
@@ -89,7 +89,7 @@ rule mmseqs2_map_uhgp50:
          """
          mmseqs map --threads {threads} {input.query}/{params.query_prefix} \
             {input.target}/{params.target_prefix} {output.outdir}/{params.prefix} \
-            /tmp --min-seq-id 0.50 2> {log}
+            /tmp -a --comp-bias-corr 0 --mask 0 --min-seq-id 0.50 2> {log}
          """
 
 rule mmseqs2_convertalis_blast_uhgp50_db:
@@ -182,7 +182,7 @@ rule mmseqs2_linclust_uhgp50_db:
      shell:
          """
          mmseqs linclust {input}/{params.unaligned_prefix} {output.outdir}/{params.prefix} \
-            {params.tmp_dir} --min-seq-id {params.seq_id_precent} \
+            {params.tmp_dir} \
             --threads {threads} 2> {log}
          """
 

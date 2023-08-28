@@ -15,8 +15,8 @@ rule mmseqs2_map_uniref50:
          query=rules.create_mmseqs2_query_db.output.query_path,
          target=rules.create_uniref50.output.uniref50_path
      output:
-         outdir=directory("results/{database}/mmseqs2/uniref50/mapping/"),
-         index="results/{database}/mmseqs2/uniref50/mapping/{database}_map.index"
+         outdir=directory("results/{database}/uniref50/mmseqs2/mapping/"),
+         index="results/{database}/uniref50/mmseqs2/mapping/{database}_map.index"
      log: "logs/{database}/uniref50/mmseqs2/mapping/mmseqs2_map.log"
      params:
          prefix="{database}_map",
@@ -26,7 +26,7 @@ rule mmseqs2_map_uniref50:
      conda: "../envs/mapping.yml"
      shell:
          """
-         mmseqs seach --threads {threads} {input.query}/{params.query_prefix} \
+         mmseqs search --threads {threads} {input.query}/{params.query_prefix} \
             {input.target}/{params.target_prefix} {output.outdir}/{params.prefix} \
             /tmp --min-seq-id 0.50 2> {log}
          """
