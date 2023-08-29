@@ -17,8 +17,8 @@ def main(args):
         # Get pair and unpair files in separate lists
         frame = pd.read_csv(os.path.join(args.dir, species[0]), delimiter = '\t')
         accessions = ["".join(re.split("(\.\d*_)", x)[0:2])[:-1] for x in list(frame.iloc[:, 0])]
-        #centroids = [re.split("\.\d*_", x)[1].split('_')[0] for x in list(frame.iloc[:, 0])]
         centroids = list(frame.iloc[:, 1])
+        
         for i in range(0,len(centroids)):
             key=centroids[i]
             if not key in centroids_dict.keys():
@@ -26,12 +26,13 @@ def main(args):
             else:
                 species_lst = centroids_dict[key]
                 species_lst.append(accessions[i])
-                centroids_dict[key]=list(set(species_lst))
+                centroids_dict[key]=list(species_lst)
+        
         accessions_frame = pd.DataFrame({"accessions": list(centroids_dict.values())})
         accessions_matrix = accessions_frame['accessions'].apply(pd.value_counts).fillna(0).astype(int)
         ids = list(centroids_dict.keys())
         accessions_matrix.index = ids
-        out = accessions_matrix.reindex(sorted(accessions_matrix.columns), axis=1)	
+        out = accessions_matrix.reindex(sorted(accessions_matrix.columns), axis=1).transpose()	
         out.to_csv(args.output, sep=",")
 
 if __name__ == "__main__":

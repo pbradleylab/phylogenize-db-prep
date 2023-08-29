@@ -6,7 +6,7 @@ include: "blast.smk"
 rule combine_species_hits:
     input:
         uhgp50_identity_50=rules.get_top_50_evals_uhgp50.output.tophits,
-        unmapped=rules.mmseqs2_convertalis_unmapped_blast_uhgp50_db.output,
+        unmapped=rules.mmseqs2_linclust_uhgp50_db.output.tsv,
         uniref50_identity_50=rules.get_top_50_evals_uniref50.output.tophits
     output: 
          txt="results/{database}/uniref50/mmseqs2/combined_species_hits/{database}.txt",
@@ -15,7 +15,9 @@ rule combine_species_hits:
     log: "logs/{database}/uniref50/mmseqs2/hits_50/mmseqs2_hits_50.log"
     shell:
         """
-        cat {input.unmapped} | cut -f1,2 > {output.txt}
+        cat {input.unmapped} | cut -f1  > /tmp/tmp.1
+        cat {input.unmapped} | cut -f2  > /tmp/tmp.2 
+        paste /tmp/tmp.2 /tmp/tmp.1 > {output.txt}
         cat {input.uhgp50_identity_50} | cut -f1,2 | sed '1d' >> {output.txt}
         cat {input.uniref50_identity_50} | cut -f1,2 | sed '1d' >> {output.txt}
         """
