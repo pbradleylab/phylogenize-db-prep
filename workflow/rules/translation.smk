@@ -15,7 +15,7 @@ def get_pangenomes(wildcards):
 # from the default '*' character to an 'X' representing any animo acid.
 rule transeq:
     input:get_pangenomes
-    output: "results/{database}/transeq/{pangenome}.ffn"
+    output: temp("results/{database}/transeq/{pangenome}.ffn")
     params:
         clean=config["transeq"]["convert_missing_to_x"]
     log: "logs/{database}/transeq/{pangenome}.log"
@@ -23,6 +23,18 @@ rule transeq:
     shell:
         """
         transeq {input} {output} -clean {params.clean} 2> {log}
+        """
+
+# Append the name of the MIDAS identifier to the fron for later parsing.
+rule append_name:
+    input: rules.transeq.output
+    output: "results/{database}/renamed/{pangenome}.ffn"
+    params:
+        prefix="{pangenome}"
+    conda: "../envs/translation.yml"
+    shell:
+        """
+        bbrename.sh in={input} out={output} prefix={params.prefix} addprefix=t 
         """
         
 # Combine the fasta that are translated to retrieve the unmapped alignments
