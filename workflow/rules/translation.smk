@@ -10,11 +10,25 @@ def get_pangenomes(wildcards):
     pangenomes = get_subsample_attributes(wildcards.pangenome, "pangenomes", pep)
     return pangenomes
 
+
+# Append the name of the MIDAS identifier to the fron for later parsing.
+rule append_name:
+    input: get_pangenomes
+    output: "results/{database}/renamed/{pangenome}.ffn"
+    params:
+        prefix="{pangenome}"
+    conda: "../envs/translation.yml"
+    log: "logs/{database}/renamed/{pangenome}.log"
+    shell:
+        """
+        bbrename.sh in={input} out={output} prefix={params.prefix} addprefix=t 2> {log}
+        """
+
 # Translate nucleotides per genome to peptide sequences per genome.
 # Please check the config to set if stop codons shouldn't convert
 # from the default '*' character to an 'X' representing any animo acid.
 rule transeq:
-    input:get_pangenomes
+    input: rules.append_name.output
     output: temp("results/{database}/transeq/{pangenome}.ffn")
     params:
         clean=config["transeq"]["convert_missing_to_x"]
@@ -24,24 +38,12 @@ rule transeq:
         """
         transeq {input} {output} -clean {params.clean} 2> {log}
         """
-
-# Append the name of the MIDAS identifier to the fron for later parsing.
-rule append_name:
-    input: rules.transeq.output
-    output: "results/{database}/renamed/{pangenome}.ffn"
-    params:
-        prefix="{pangenome}"
-    conda: "../envs/translation.yml"
-    shell:
-        """
-        bbrename.sh in={input} out={output} prefix={params.prefix} addprefix=t 
-        """
         
 # Combine the fasta that are translated to retrieve the unmapped alignments
 # in later steps.
 rule combine_fasta_uniref50:
      input: get_transeq_output
-     output: "results/{database}/combine_fasta_uniref50/{database}.fa"
+     output: "results/{database}/combine_fasta/{database}.fa"
      conda: "../envs/translation.yml"
      shell:
          """

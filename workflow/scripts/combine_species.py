@@ -16,7 +16,7 @@ def main(args):
         species = [found for found in os.listdir(args.dir) if os.path.isfile(os.path.join(args.dir, found)) and found.endswith(args.ext)]
         # Get pair and unpair files in separate lists
         frame = pd.read_csv(os.path.join(args.dir, species[0]), delimiter = '\t')
-        accessions = ["".join(re.split("(\.\d*_)", x)[0:2])[:-1] for x in list(frame.iloc[:, 0])]
+        accessions = [x.split("_")[0] for x in list(frame.iloc[:, 0])]
         centroids = list(frame.iloc[:, 1])
         
         # Make the dictionary for the genomes each protein was aligned or clustered to.
