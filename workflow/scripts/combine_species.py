@@ -12,6 +12,7 @@ import numpy as np
 
 
 def main(args):
+        dups=open(args.duplicates, "w")
         centroids_dict={}
         species = [found for found in os.listdir(args.dir) if os.path.isfile(os.path.join(args.dir, found)) and found.endswith(args.ext)]
         # Get pair and unpair files in separate lists
@@ -27,8 +28,11 @@ def main(args):
             else:
                 species_lst = centroids_dict[key]
                 species_lst.append(accessions[i])
-                centroids_dict[key]=species_lst
-
+                centroids_dict[key]=list(set(species_lst))
+                # Write out duplicate hits found in target databases.
+                if len(species_lst) >1:
+                    dups.write(key+"\n")
+                
         # Convert the dictionary into a binary matrix
         accessions_frame = pd.DataFrame({"accessions": list(centroids_dict.values())})
         accessions_matrix = accessions_frame['accessions'].apply(pd.value_counts).fillna(0).astype(int)
@@ -41,6 +45,7 @@ def main(args):
         len(centroids) == sum(sums[0])
         
         out.to_csv(args.output, sep=",")
+        dups.close()
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
@@ -50,6 +55,8 @@ if __name__ == "__main__":
                 help = "Directory containing all the files to combine")
         parser.add_argument("--ext","-e",
                 help = "Extension of the files to combine")
+        parser.add_argument("--duplicates","-p",
+                help = "The file that contains duplicate entries found")
         args = parser.parse_args()
-
+        
         main(args)

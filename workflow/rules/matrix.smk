@@ -41,12 +41,17 @@ rule combine_hits:
 # but clustered.
 rule create_species_matrix:
     input: rules.combine_hits.output.outdir
-    output: "results/{database}/final/species_matrix/{database}.txt"
+    output: 
+        out="results/{database}/final/species_matrix/{database}.txt",
+        dup="results/{database}/final/species_matrix/{database}.dups"
     conda: "../envs/matrix.yml"
     shell:
         """
+        #mkdir -p $(dirname {output.out})
+        #touch {output.dup} && chmod 777 {output.dup}
         python workflow/scripts/combine_species.py \
-            --output {output} \
+            --output {output.out} \
             --dir {input} \
-            --ext ".txt"
+            --ext ".txt" \
+            --duplicates {output.dup}
         """
