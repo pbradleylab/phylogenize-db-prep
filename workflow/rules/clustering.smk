@@ -76,8 +76,8 @@ rule mmseqs2_map_uhgp50:
          query=rules.create_mmseqs2_unaligned_uniref50_db.output.outdir,
          target=rules.create_uhgp50.params.uhgp50_path
      output:
-         outdir=directory("results/{database}/mmseqs2/uhgp50/mapping/"),
-         index="results/{database}/mmseqs2/uhgp50/mapping/{database}_map.index"
+         outdir=directory("results/{database}/uhgp50/mmseqs2/mapping/"),
+         index="results/{database}/uhgp50/mmseqs2/mapping/{database}_map.index"
      log: "logs/{database}/uhgp50/mmseqs2/mapping/mmseqs2_map.log"
      params:
          prefix="{database}_map",
@@ -87,9 +87,9 @@ rule mmseqs2_map_uhgp50:
      conda: "../envs/mapping.yml"
      shell:
          """
-         mmseqs map -a --threads {threads} {input.query}/{params.query_prefix} \
+         mmseqs map --threads {threads} {input.query}/{params.query_prefix} \
             {input.target}/{params.target_prefix} {output.outdir}/{params.prefix} \
-            --min-seq-id 0.50 /tmp 2> {log}
+            /tmp -a --comp-bias-corr 0 --mask 0 --min-seq-id 0.50 2> {log}
          """
 
 rule mmseqs2_convertalis_blast_uhgp50_db:
@@ -125,7 +125,7 @@ rule get_top_50_evals_uhgp50:
          """
          touch {output.unfiltered}
          awk '$3>50 {{print}}' {input} > {output.unfiltered}
-         python workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
+         python3 workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
          """
 
 rule get_unaligned_uhgp50_sequences:
@@ -143,65 +143,22 @@ rule get_unaligned_uhgp50_sequences:
         faSomeRecords {input.all_sequences} /tmp/tmp.unaligned {output}
         """
 
-# Create a new database that is declared as temporary. This database
-# holds the unaligned peptide sequences that are assumed as potential
-# species specific alignments.
-rule create_mmseqs2_unaligned_uhgp50_db:
-    input: rules.get_unaligned_uhgp50_sequences.output
-    output:
-        outdir=directory("results/{database}/uhgp50/mmseqs2/unmapped/"),
-        index="results/{database}/uhgp50/mmseqs2/unmapped/unmapped.index"
-    params:
-        unaligned_prefix="unmapped"
-    conda: "../envs/clustering.yml"
-    log: "logs/{database}/uhgp50/mmseqs2/create_mmseqs2_unaligned/mmseqs2_create_mmseqs2_unaligned.log"
-    shell:
-        """
-        mkdir -p {output.outdir}
-        mmseqs createdb {input} {output.outdir}/{params.unaligned_prefix} \
-            --dbtype 1 2> {log}
-        mmseqs createindex {output.outdir}/{params.unaligned_prefix} \
-            /tmp 2> {log}
-        """
-
 # Cluster the unaligned protein sequence database from
 # mmseqs' search command.
 rule mmseqs2_linclust_uhgp50_db:
-     input: rules.create_mmseqs2_unaligned_uhgp50_db.output.outdir
+     input:rules.get_unaligned_uhgp50_sequences.output
      output:
-         database="results/{database}/uhgp50/mmseqs2/linclust/unaligned_linclust.index",
-         outdir=directory("results/{database}/uhgp50/mmseqs2/linclust/")
+         outdir=directory("results/{database}/uhgp50/mmseqs2/linclust/"),
+         tsv="results/{database}/uhgp50/mmseqs2/linclust/unaligned_linclust_cluster.tsv"
      params:
-         unaligned_prefix=rules.create_mmseqs2_unaligned_uhgp50_db.params.unaligned_prefix,
          prefix="unaligned_linclust",
-         seq_id_precent=config["mmseqs2"]["linclust"]["seq_id_precent"],
          tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"]
      conda: "../envs/clustering.yml"
      log: "logs/{database}/uhgp50/mmseqs2/linclust/mmseqs2_linclust.log"
      threads: config["mmseqs2"]["linclust"]["threads"]
      shell:
          """
-         mmseqs linclust {input}/{params.unaligned_prefix} {output.outdir}/{params.prefix} \
-            {params.tmp_dir} --min-seq-id {params.seq_id_precent} \
-            --threads {threads} 2> {log}
+         mmseqs easy-linclust {input[0]} {output.outdir}/{params.prefix} \
+            {params.tmp_dir} --threads {threads} 2> {log}
          """
 
-rule mmseqs2_createsubdb_uhgp50:
-     input:
-         unaligned=rules.create_mmseqs2_unaligned_uhgp50_db.output.outdir,
-         linclust=rules.mmseqs2_linclust_uhgp50_db.output.outdir
-     output:
-         outdir=directory("results/{database}/uhgp50/mmseqs2/creadsubdb/")
-     params:
-         linclust_prefix=rules.mmseqs2_linclust_uhgp50_db.params.prefix,
-         unaligned_prefix=rules.create_mmseqs2_unaligned_uhgp50_db.params.unaligned_prefix,
-         prefix="unaligned_linclust_rep"
-     conda: "../envs/clustering.yml"
-     log: "logs/{database}/uhgp50/mmseqs2/createsubdb/mmseqs2_linclust.log"
-     shell:
-         """
-         mkdir -p {output.outdir}
-         mmseqs createsubdb {input.linclust}/{params.linclust_prefix} \
-            {input.unaligned}/{params.unaligned_prefix} \
-            {output.outdir}/{params.prefix} 2> {log}
-         """
