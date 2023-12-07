@@ -5,10 +5,12 @@ min_version("6.0") # Enforces minimum conda version ~
 
 configfile: "config/config.json"
 configfile: "config/tools.json"
-pepfile: config["pepfile"]
+#pepfile: config["pepfile"]
 
 include: "rules/matrix.smk"
 
 
 rule all:
-    input: expand(rules.create_species_matrix.output[0], database=pep.sample_table.project.unique().tolist())
+    input: rules.create_species_matrix.output[0].format(database=config["database"])
+
+#expand(rules.create_species_matrix.output[0], database=pep.sample_table.project.unique().tolist())

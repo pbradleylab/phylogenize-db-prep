@@ -28,7 +28,8 @@ rule get_top_50_evals_uniref50:
      output: 
          unfiltered="results/{database}/uniref50/mmseqs2/top_50/{database}_convertlis.tsv",
          tophits="results/{database}/uniref50/mmseqs2/top_50/{database}_convertlis_tophits.tsv"
-     conda: "../envs/matrix.yml"
+     params:
+         outdir="results/{database}/uniref50/mmseqs2/top_50/"
      shell:
          """
          touch {output.unfiltered}
@@ -39,15 +40,16 @@ rule get_top_50_evals_uniref50:
 rule get_unaligned_uniref50_sequences:
     input: 
         aligned=rules.get_top_50_evals_uniref50.output.unfiltered,
-        all_sequences=rules.combine_fasta_uniref50.output
+        all_sequences=rules.reduce_complexity.output
     output: "results/{database}/uniref50/mapping/unmapped/{database}.fa"
     conda: "../envs/clustering.yml"
     shell:
         """
-        cut -f1 {input.aligned} | sed '1d' | uniq > /tmp/tmp.aligned
-        grep '>' {input.all_sequences} | sed "s/>//g" > /tmp/tmp.all
-        grep -F -v -x -f /tmp/tmp.aligned /tmp/tmp.all > /tmp/tmp.unaligned
-        faSomeRecords {input.all_sequences} /tmp/tmp.unaligned {output}
+        touch {output}
+        #cut -f1 {input.aligned} | sed '1d' | uniq > /tmp/tmp.aligned
+        #grep '>' {input.all_sequences} | sed "s/>//g" > /tmp/tmp.all
+        #grep -F -v -x -f /tmp/tmp.aligned /tmp/tmp.all > /tmp/tmp.unaligned
+        #faSomeRecords {input.all_sequences} /tmp/tmp.unaligned {output}
         """
 
 # Create a new database that is declared as temporary. This database
@@ -82,14 +84,15 @@ rule mmseqs2_map_uhgp50:
      params:
          prefix="{database}_map",
          query_prefix=rules.create_mmseqs2_unaligned_uniref50_db.params.unaligned_prefix,
-         target_prefix="uhgp50"
+         target_prefix="uhgp50",
+         sensitivity=config["mmseqs2"]["map"]["sensitivity"]
      threads: config["mmseqs2"]["map"]["threads"]
      conda: "../envs/mapping.yml"
      shell:
          """
          mmseqs map --threads {threads} {input.query}/{params.query_prefix} \
             {input.target}/{params.target_prefix} {output.outdir}/{params.prefix} \
-            /tmp -a --comp-bias-corr 0 --mask 0 --min-seq-id 0.50 2> {log}
+            /tmp -a --comp-bias-corr 0 --mask 0 --min-seq-id 0.50 {params.sensitivity} 2> {log}
          """
 
 rule mmseqs2_convertalis_blast_uhgp50_db:
@@ -125,6 +128,7 @@ rule get_top_50_evals_uhgp50:
          """
          touch {output.unfiltered}
          awk '$3>50 {{print}}' {input} > {output.unfiltered}
+         sed -i '1d' {output.unfiltered}
          python3 workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
          """
 

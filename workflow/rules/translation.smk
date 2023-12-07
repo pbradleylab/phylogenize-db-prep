@@ -1,9 +1,9 @@
 def get_transeq_output(wildcards):
     outputLST = []
-    for subsample in pep.subsample_table.subsample.tolist():
-        project = get_subsample_attributes(subsample, "project", pep)
+    #for subsample in pep.subsample_table.subsample.tolist():
+        #project = get_subsample_attributes(subsample, "project", pep)
         # Always run rules on the outside
-        outputLST.append(rules.transeq.output[0].format(database=project, pangenome=subsample))
+        #outputLST.append(rules.transeq.output[0].format(database=project, pangenome=subsample))
     return outputLST
 
 def get_pangenomes(wildcards):
@@ -29,7 +29,7 @@ rule append_name:
 # from the default '*' character to an 'X' representing any animo acid.
 rule transeq:
     input: rules.append_name.output
-    output: temp("results/{database}/transeq/{pangenome}.ffn")
+    output: "results/{database}/transeq/{pangenome}.ffn"
     params:
         clean=config["transeq"]["convert_missing_to_x"]
     log: "logs/{database}/transeq/{pangenome}.log"
@@ -43,9 +43,20 @@ rule transeq:
 # in later steps.
 rule combine_fasta_uniref50:
      input: get_transeq_output
-     output: "results/{database}/combine_fasta/{database}.fa"
+     output: "results/{database}/combined_fasta/{database}.fa"
      conda: "../envs/translation.yml"
      shell:
          """
          cat {input} > {output}
+         """
+
+rule reduce_complexity:
+     input: config["indir"]
+     output: "results/{database}/combined_fasta/{database}.fa"
+     params:
+         database="{database}"
+     conda:"../envs/translation.yml"
+     shell:
+         """
+         bash workflow/scripts/reduce_complexity.sh {input} {output} {params.database}
          """

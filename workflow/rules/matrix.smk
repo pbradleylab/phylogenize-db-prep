@@ -1,5 +1,4 @@
-include: "blast.smk"
-
+include: "clustering.smk"
 
 # Combines species with a 90% or greater identity match to the target database, 
 # and the unmapped regions to a list of species specific vectors by their centroid.
