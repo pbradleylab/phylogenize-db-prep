@@ -5,57 +5,69 @@ are a binary for if the centroid is present for the different predefined species
 In our case, this is used for the nucleotide clustered pangenomes for midas' GTDB 
 database. 
 """
-import os, re
+import os, re, sys
 import pandas as pd
 import argparse
 import numpy as np
+from dask import dataframe as dd 
+import dask
+
+def clean_proteins(lst):
+        centroids=[]
+        for x in lst:
+            if "GCA" in x or "GCF" in x:
+                x=x.split("_")
+                x="".join(x[1:])
+            if x.startswith("UniRef50"):
+                x=x.replace("UniRef50_", "")
+            centroids.append(x)
+        return centroids
 
 
 def main(args):
-        dups=open(args.duplicates, "w")
         centroids_dict={}
-        species = [found for found in os.listdir(args.dir) if os.path.isfile(os.path.join(args.dir, found)) and found.endswith(args.ext)]
+        binary=[]
+        
+        # Duplicate file
+        dups=open(args.duplicates, "w")
         # Get pair and unpair files in separate lists
-        frame = pd.read_csv(os.path.join(args.dir, species[0]), delimiter = '\t')
-        accessions = [x.split("_")[0] for x in list(frame.iloc[:, 0])]
-        centroids = list(frame.iloc[:, 1])
-        
-        # Make the dictionary for the genomes each protein was aligned or clustered to.
-        for i in range(0,len(centroids)):
-            key=centroids[i]
-            if not key in centroids_dict.keys():
-                centroids_dict[key] = [accessions[i]]
-            else:
-                species_lst = centroids_dict[key]
-                species_lst.append(accessions[i])
-                centroids_dict[key]=list(set(species_lst))
-                # Write out duplicate hits found in target databases.
-                if len(species_lst) >1:
-                    dups.write(key+"\n")
-                
-        # Convert the dictionary into a binary matrix
-        accessions_frame = pd.DataFrame({"accessions": list(centroids_dict.values())})
-        accessions_matrix = accessions_frame['accessions'].apply(pd.value_counts).fillna(0).astype(int)
-        ids = list(centroids_dict.keys())
-        accessions_matrix.index = ids
-        out = accessions_matrix.reindex(sorted(accessions_matrix.columns), axis=1)	
-        
-        # Test that the input number matches the output number of entries in the matrix.  
-        sums = pd.DataFrame(out.sum(axis=0))
-        len(centroids) == sum(sums[0])
-        
-        out.to_csv(args.output, sep=",")
-        dups.close()
+        frame = pd.read_csv(args.input, delimiter='\t', header=None, names=["species", "protein"])
+        # Read in species and proteins lists
+        #proteins = pd.read_csv(args.protein, header=None, names=["protein"], sep='\t')
+        # Collect the species that are relavant for the binary if a subset has been selected, this works as well. 
+        frame["species"] = [x.split("_")[0] for x in list(frame["species"])]
+        frame["protein"] = clean_proteins(list(frame["protein"]))
+        #print("Made Centroid list")
+        frame["presence"] = 1
+        print(frame)
+         
+        # Collect species we are making the binary for
+        #proteins["protein"] = clean_proteins(list(proteins["protein"]))
+        #frame=pd.merge(frame, proteins, on="protein", how="outer", indicator=True)
+        # Make a template frame for all the proteins not found for any given species
+        # and then concat them to all those that are shared
+        #template=frame[frame["_merge"] == "right_only"]
+        #template["_merge"] = False
+        #frame=frame[frame["_merge"] == "both"]
+        #frame["_merge"] = True
+        #print(frame)
+        #for species in list(set(frame["species"])):
+        #     template["species"]=species
+        #     frame=pd.concat([frame, template])
+        #     print("species: "+species+" added.")
+        #frame = frame.rename({"_merge":"presence"})
+        #frame = frame.drop_duplicates()
+        #frame["species"]=frame["species"].astype('int8')
+        #frame["protein"]=frame["protein"].astype('string[pyarrow]')
+        frame.reset_index(drop=True).to_feather(args.output) 
 
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
         parser.add_argument("--output","-o",
                 help = "The matrix file to write to")
-        parser.add_argument("--dir","-d",
+        parser.add_argument("--input","-i",
                 help = "Directory containing all the files to combine")
-        parser.add_argument("--ext","-e",
-                help = "Extension of the files to combine")
-        parser.add_argument("--duplicates","-p",
+        parser.add_argument("--duplicates","-d",
                 help = "The file that contains duplicate entries found")
         args = parser.parse_args()
         

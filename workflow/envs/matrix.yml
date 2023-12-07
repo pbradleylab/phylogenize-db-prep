@@ -6,3 +6,4 @@ dependencies:
   - mmseqs2=14.7e284
   - pandas=1.5.3
   - numpy=1.25.0
+  - dask

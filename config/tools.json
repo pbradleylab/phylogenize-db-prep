@@ -1,10 +1,11 @@
 {
     "mmseqs2":{
         "convertalis":{
-            "threads":32
+            "threads":40
         },
         "map":{
-            "threads":32
+            "threads":40,
+            "sensitivity":"--start-sens 1 --sens-steps 3 -s 7"
         },
         "createdb":{
             "threads":32
@@ -13,17 +14,17 @@
          "threads":32
         },
         "linclust":{
-            "threads":32,
+            "threads":40,
             "seq_id_precent":0.0,
             "tmp_dir":"tmp90"
         }
     },
     "samtools":{
         "fasta":{
-            "threads":16
+            "threads":40
         },
         "view":{
-            "threads":16
+            "threads":40
         }
     },
     "transeq":{

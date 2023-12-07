@@ -3,6 +3,7 @@ should be placed here.
 """
 from scripts.utils import *
 configfile: "config/config.json"
+include: "translation.smk"
 
 def get_mmseqs2_input(wildcards):
     outputLST = []
@@ -17,7 +18,7 @@ def get_mmseqs2_input(wildcards):
 # pangenomes that is being made into a final species level protein
 # binary for Phylogenize.
 rule create_mmseqs2_query_db:
-    input: get_mmseqs2_input
+    input: rules.reduce_complexity.output
     output:
         index="resources/{database}/custom/custom.index",
         query_path=directory("resources/{database}/custom")

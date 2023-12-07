@@ -10,6 +10,9 @@ include: "translation.smk"
 # Note: We call params here from previous rules. This method is continued
 #    throughout all subsequent methods for continuety. These can be abstracted
 #    out to a config however it looses some of the automation that way.
+# Note: We use an iterative step method desribed in the mmseqs documentation
+#    for how to speed up the mapping step iteratively. See the params set in 
+#    the tools.json file.
 rule mmseqs2_map_uniref50:
      input:
          query=rules.create_mmseqs2_query_db.output.query_path,
@@ -21,12 +24,13 @@ rule mmseqs2_map_uniref50:
      params:
          prefix="{database}_map",
          query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
-         target_prefix="UniRef50"
+         target_prefix="UniRef50",
+         sensitivity=config["mmseqs2"]["map"]["sensitivity"]
      threads: config["mmseqs2"]["map"]["threads"]
      conda: "../envs/mapping.yml"
      shell:
          """
          mmseqs search --threads {threads} {input.query}/{params.query_prefix} \
             {input.target}/{params.target_prefix} {output.outdir}/{params.prefix} \
-            /tmp --min-seq-id 0.50 2> {log}
+            results/tmp50 --min-seq-id 0.50 {params.sensitivity} 2> {log}
          """
