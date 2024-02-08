@@ -13,8 +13,7 @@ rule all:
         expand("/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/midas/{ERR}/species/species_profile.tsv", ERR=smp),
         expand("/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/midas2/{ERR}/species/species_profile.tsv", ERR=smp),
         expand("/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/sample_manifest.tsv", ERR=smp),
-        directory("/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/midas2/merged/"),
-        expand("/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/abund_relative/merged_rel_abund.csv", ERR=smp)
+        directory("/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/midas2/merged/")
 
 rule fastP:
     input: 
@@ -57,16 +56,6 @@ rule bracken:
         "-o {output} "
         "-r 100 "
         "-l S"
-
-rule calculate_relative_abund:
-    input:
-        "/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/abund/{ERR}.bracken",
-    output:
-        "/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/abund_relative/merged_rel_abund.csv",
-    conda: "../envs/env.yml"
-    shell:
-        "wget -c https://gist.githubusercontent.com/telatin/9c5e38e52e1d97f8b4cf93928a859166/raw/0d88f2a65b35f6e1e92331357eb307a20a02eb3c/merge_profiling_reports.py && "
-        "python3 -i ~/profiling/bracken/ -o /fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/abund_relative/"
 
 rule midas:
     input:
