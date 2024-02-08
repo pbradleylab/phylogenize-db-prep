@@ -1,0 +1,8 @@
+name: pipeline
+channels:
+  - anaconda
+  - bioconda
+  - conda-forge
+  - zhaoc1
+dependencies:
+  - midas2=1.1.3
