@@ -72,7 +72,7 @@ rule midas:
         "-2 {input.r2} "
         "-d /fs/project/bradley.720/db/MIDAS/midas_db_v1.2/ "
         "-t {threads} "
-        "/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/midas/v1/{params.name}/"
+        "/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/midas/{params.name}/"
 
 rule midas2:
     input:
@@ -89,7 +89,7 @@ rule midas2:
         "-2 {input.r2} "
         "--midasdb_dir /fs/project/bradley.720/db/MIDAS/midas_db_v1.2/ "
         "-t {threads} "
-        "/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/midas/v2/{params.name}/"
+        "/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/midas2/{params.name}/"
 
 rule midas2_sample_manifest:
     output: "/fs/project/bradley.720/users/kananen.13/phylogenize/test/taraOceans/sample_manifest.tsv"
