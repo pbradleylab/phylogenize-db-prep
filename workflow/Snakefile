@@ -1,16 +1,44 @@
-""" Create an RNASeq pipeline up to the start of defrential analysis.
+""" Create databases for phylogenize pipeline. 
 """
 from snakemake.utils import min_version
 min_version("6.0") # Enforces minimum conda version ~
 
 configfile: "config/config.json"
 configfile: "config/tools.json"
-#pepfile: config["pepfile"]
+pepfile: config["pepfile"]
+include: "rules/annotation.smk"
 
-include: "rules/matrix.smk"
+
+# Check which mode we should run the workflow in. Currently the workflow runs in various
+# modes being starting from a pangenome set or starting from a database that is already 
+# clustered and is ready for annotation and to generate the binaries needed to run in
+# Phylogenize.
+def start_workflow(wildcards):
+    out=[]
+    # Start at annotation portion by mapping to databases that were already annotated.
+    # The more that are annotated, the less annotation needs to be done later on. Thus,
+    # This process should be less intense the more comprehensive phylogenize becomes.
+    if config["annotation"]["annotate_only"] == "True":
+        out.append(
+             expand(rules.get_unaligned_sequences.output,
+                    database=config["database"],
+                    mapping_db=config["annotation"]["mapping_databases"].keys(),
+                    target_db=config["target_db"]["paths"].keys()))
+        #out.append(
+        #    expand(rules.make_query_databases.output,
+        #           database=config["database"],
+        #           mapping_db=config["annotation"]["mapping_databases"].keys()))
+        #out.append(
+        #    expand(rules.make_target_databases.output,
+        #           database=config["database"],
+        #           target_db=config["target_db"]["paths"].keys()))
+    else:
+        out.append(
+            expand("resources/annotations/{database}/species_matrix/{database}_species_matrix.csv",
+                   database=config["database"]))
+    out=[x for sub in out for x in sub]
+    return(out)
 
 
 rule all:
-    input: rules.create_species_matrix.output[0].format(database=config["database"])
-
-#expand(rules.create_species_matrix.output[0], database=pep.sample_table.project.unique().tolist())
+    input:start_workflow

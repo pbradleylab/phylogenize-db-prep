@@ -38,7 +38,9 @@ def main(args):
         frame["species"] = [x.split("_")[0] for x in list(frame["species"])]
         frame["protein"] = clean_proteins(list(frame["protein"]))
         #print("Made Centroid list")
-        frame["presence"] = 1
+        result_dict = df.groupby("species").apply(lambda x: x[["species", "protein"]].values.tolist()).to_dict()
+        #frame["presence"] = 1
+        print(result_dict)
         print(frame)
          
         # Collect species we are making the binary for
