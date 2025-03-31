@@ -24,14 +24,6 @@ def start_workflow(wildcards):
                     database=config["database"],
                     mapping_db=config["annotation"]["mapping_databases"].keys(),
                     target_db=config["target_db"]["paths"].keys()))
-        #out.append(
-        #    expand(rules.make_query_databases.output,
-        #           database=config["database"],
-        #           mapping_db=config["annotation"]["mapping_databases"].keys()))
-        #out.append(
-        #    expand(rules.make_target_databases.output,
-        #           database=config["database"],
-        #           target_db=config["target_db"]["paths"].keys()))
     else:
         out.append(
             expand("resources/annotations/{database}/species_matrix/{database}_species_matrix.csv",
