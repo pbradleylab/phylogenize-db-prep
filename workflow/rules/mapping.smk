@@ -13,24 +13,27 @@ include: "translation.smk"
 # Note: We use an iterative step method desribed in the mmseqs documentation
 #    for how to speed up the mapping step iteratively. See the params set in 
 #    the tools.json file.
-rule mmseqs2_map_uniref50:
-     input:
-         query=rules.create_mmseqs2_query_db.output.query_path,
-         target=rules.create_uniref50.output.uniref50_path
-     output:
-         outdir=directory("results/{database}/uniref50/mmseqs2/mapping/"),
-         index="results/{database}/uniref50/mmseqs2/mapping/{database}_map.index"
-     log: "logs/{database}/uniref50/mmseqs2/mapping/mmseqs2_map.log"
-     params:
-         prefix="{database}_map",
-         query_prefix=rules.create_mmseqs2_query_db.params.query_prefix,
-         target_prefix="UniRef50",
-         sensitivity=config["mmseqs2"]["map"]["sensitivity"]
-     threads: config["mmseqs2"]["map"]["threads"]
-     conda: "../envs/mapping.yml"
-     shell:
-         """
-         mmseqs search --threads {threads} {input.query}/{params.query_prefix} \
-            {input.target}/{params.target_prefix} {output.outdir}/{params.prefix} \
+# Map queries to target database
+rule map_query:
+    input:
+       target=rules.make_target_databases.output.target_path,
+       query=rules.make_current_query_databases.output.query_path,
+       # If this is not the first database, wait for previous database processing to complete
+       previous_checkpoint=lambda wildcards: (
+           f"results/{wildcards.database}/annotation/checkpoints/{get_previous_target_db(wildcards)}_processed.done"
+           if get_previous_target_db(wildcards) is not None else []
+       )
+    output:
+        outdir=directory("results/{database}/map_query/{target_db}/{mapping_db}/"),
+        index="results/{database}/map_query/{target_db}/{mapping_db}/{mapping_db}_map.index"
+    params:
+        sensitivity=config["mmseqs2"]["map"]["sensitivity"]
+    conda: "envs/mapping.yml"
+    log: "logs/{database}/map_query/{target_db}_{mapping_db}.log"
+    threads: config["mmseqs2"]["map"]["threads"]
+    shell:
+        """
+        mmseqs search --threads {threads} {input.query}/{wildcards.mapping_db} \
+            {input.target}/{wildcards.target_db} {output.outdir}/{wildcards.mapping_db} \
             results/tmp50 --min-seq-id 0.50 {params.sensitivity} 2> {log}
-         """
+        """

@@ -1,302 +1,31 @@
-# Snakefile for sequential database processing workflow
+""" Create databases for phylogenize pipeline. 
+"""
+from snakemake.utils import min_version
+min_version("6.0") # Enforces minimum conda version ~
 
-# Load configuration files
 configfile: "config/config.json"
 configfile: "config/tools.json"
 pepfile: config["pepfile"]
+include: "rules/annotation.smk"
 
 # Get the list of target databases from config
 TARGET_DBS = list(config["target_db"]["paths"].keys())
 
+# Check which mode we should run the workflow in. Currently the workflow runs in various
+# modes being starting from a pangenome set or starting from a database that is already 
+# clustered and is ready for annotation and to generate the binaries needed to run in
+# Phylogenize.
 def get_final_output(wildcards):
-    """Define the final expected output of the workflow"""
     outputs = []
-    
-    # For each database, get the final output after processing through all target databases
     for mapping_db in config["annotation"]["mapping_databases"].keys():
-        # The final unmapped sequences after the last target database
         outputs.append(
             f"results/{config['database']}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{TARGET_DBS[-1]}.fa"
         )
-    
-    # Add the linclust output (clustering of unmapped sequences)
     outputs.append(f"results/{config['database']}/mmseqs2/linclust/unaligned_linclust_cluster.tsv")
-    
-    # Add the final combined report
     outputs.append(f"results/{config['database']}/annotation/final_report.html")
-    
+
     return outputs
 
 rule all:
     input: get_final_output
 
-def get_initial_queries(wildcards):
-    """Return the initial full set of query sequences"""
-    query = config["annotation"]["mapping_databases"].get(wildcards.mapping_db)
-    if query:
-        return query
-    else:
-        raise ValueError(f"Query not found for database {wildcards.mapping_db}")
-
-def get_targets(wildcards):
-    """Get the path to the target database"""
-    target = config["target_db"]["paths"].get(wildcards.target_db)
-    if target:
-        return target
-    else:
-        raise ValueError(f"Target not found for database {wildcards.target_db}")
-
-def get_previous_target_db(wildcards):
-    """Get the previous target database in the sequence"""
-    try:
-        idx = TARGET_DBS.index(wildcards.target_db)
-        if idx > 0:
-            return TARGET_DBS[idx-1]
-        return None
-    except ValueError:
-        raise ValueError(f"Target database {wildcards.target_db} not found in config")
-
-def get_cumulative_unmapped_queries(wildcards):
-    """
-    Generate the appropriate input based on the target database position in the sequence
-    """
-    # Get the initial query sequences
-    query = config["annotation"]["mapping_databases"].get(wildcards.mapping_db)
-    if not query:
-        raise ValueError(f"Query not found for database {wildcards.mapping_db}")
-    
-    # Find the current target database's index
-    current_target_index = TARGET_DBS.index(wildcards.target_db)
-    
-    # If it's the first target database, use the initial full query
-    if current_target_index == 0:
-        return query
-    
-    # Otherwise, use the unmapped sequences from the previous database
-    previous_target = TARGET_DBS[current_target_index - 1]
-    return f"results/{wildcards.database}/annotation/faSomeRecords/cumulative_unmapped/{wildcards.mapping_db}_after_{previous_target}.fa"
-
-# Create databases from queries
-rule make_query_databases:
-    input: get_initial_queries
-    output:
-        index="results/{database}/annotations/make_query_databases/{mapping_db}/{mapping_db}.index",
-        query_path=directory("results/{database}/annotations/make_query_databases/{mapping_db}/")
-    conda: "envs/annotations.yml"
-    log: "logs/{database}/annotations/make_query_databases/{mapping_db}.log"
-    threads: config["mmseqs2"]["createdb"]["threads"]
-    shell:
-        """
-        mmseqs createdb {input} {output.query_path}/{wildcards.mapping_db} --dbtype 1 2> {log}
-        mmseqs createindex {output.query_path}/{wildcards.mapping_db} /tmp 2> {log}
-        """
-
-# Create databases from targets
-rule make_target_databases:
-    input: get_targets
-    output:
-        index="results/{database}/annotations/make_target_databases/{target_db}/{target_db}.index",
-        target_path=directory("results/{database}/annotations/make_target_databases/{target_db}/")
-    conda: "envs/annotations.yml"
-    log: "logs/{database}/annotations/make_target_databases/{target_db}.log"
-    threads: config["mmseqs2"]["createdb"]["threads"]
-    shell:
-        """
-        mmseqs createdb {input} {output.target_path}/{wildcards.target_db} --dbtype 1 2> {log}
-        mmseqs createindex {output.target_path}/{wildcards.target_db} /tmp 2> {log}
-        """
-
-# Process input sequences for current iteration
-rule prepare_current_iteration_input:
-    input: get_cumulative_unmapped_queries
-    output:
-        current_input="results/{database}/annotations/current_input/{target_db}/{mapping_db}_input.fa"
-    shell:
-        """
-        case {input} in
-            *.fa.gz|*.fasta.gz|*.faa.gz) gunzip -c {input} > {output.current_input} ;;
-            *) cp {input} {output.current_input} ;;
-        esac
-        """
-
-# This is a checkpoint rule that ensures we process target databases sequentially
-checkpoint database_processing_checkpoint:
-    input:
-        # For each target database, get all mapping database results
-        db_results = lambda wildcards: expand(
-            "results/{database}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa",
-            database=wildcards.database,
-            mapping_db=config["annotation"]["mapping_databases"].keys(),
-            target_db=wildcards.target_db
-        )
-    output:
-        checkpoint=touch("results/{database}/annotation/checkpoints/{target_db}_processed.done")
-    shell:
-        """
-        echo "Processing of target database {wildcards.target_db} is complete."
-        """
-
-# Create mmseqs database from input for current iteration
-rule make_current_query_databases:
-    input: rules.prepare_current_iteration_input.output.current_input
-    output:
-        index="results/{database}/annotations/make_current_query_databases/{target_db}/{mapping_db}/{mapping_db}.index",
-        query_path=directory("results/{database}/annotations/make_current_query_databases/{target_db}/{mapping_db}/")
-    conda: "envs/annotations.yml"
-    log: "logs/{database}/annotations/make_current_query_databases/{target_db}_{mapping_db}.log"
-    threads: config["mmseqs2"]["createdb"]["threads"]
-    shell:
-        """
-        mmseqs createdb {input} {output.query_path}/{wildcards.mapping_db} --dbtype 1 2> {log}
-        mmseqs createindex {output.query_path}/{wildcards.mapping_db} /tmp 2> {log}
-        """
-
-# Map queries to target database
-rule map_query:
-    input:
-       target=rules.make_target_databases.output.target_path,
-       query=rules.make_current_query_databases.output.query_path,
-       # If this is not the first database, wait for previous database processing to complete
-       previous_checkpoint=lambda wildcards: (
-           f"results/{wildcards.database}/annotation/checkpoints/{get_previous_target_db(wildcards)}_processed.done"
-           if get_previous_target_db(wildcards) is not None else []
-       )
-    output:
-        outdir=directory("results/{database}/annotation/map_query/{target_db}/{mapping_db}/"),
-        index="results/{database}/annotation/map_query/{target_db}/{mapping_db}/{mapping_db}_map.index"
-    params:
-        sensitivity=config["mmseqs2"]["map"]["sensitivity"]
-    conda: "envs/annotations.yml"
-    log: "logs/{database}/annotations/map_query/{target_db}_{mapping_db}.log"
-    threads: config["mmseqs2"]["map"]["threads"]
-    shell:
-        """
-        mmseqs search --threads {threads} {input.query}/{wildcards.mapping_db} \
-            {input.target}/{wildcards.target_db} {output.outdir}/{wildcards.mapping_db} \
-            results/tmp50 --min-seq-id 0.50 {params.sensitivity} 2> {log}
-        """
-
-# Convert mmseqs results to blast format
-rule mmseqs2_convertalis:
-     input:
-         query=rules.make_current_query_databases.output.query_path,
-         target=rules.make_target_databases.output.target_path,
-         map=rules.map_query.output.outdir
-     output:
-         blast="results/{database}/annotation/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.8",
-         list="results/{database}/annotation/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.list"
-     conda: "envs/blast.yml"
-     log: "logs/{database}/annotation/mmseqs2_convertalis_blast/{target_db}_{mapping_db}.log"
-     threads: config["mmseqs2"]["convertalis"]["threads"]
-     shell:
-         """
-         mmseqs convertalis {input.query}/{wildcards.mapping_db} \
-             {input.target}/{wildcards.target_db} \
-             {input.map}/{wildcards.mapping_db} {output.blast} --format-mode 4 \
-             --format-output query,target,pident 2> {log}
-         cut -f1 {output.blast} | sed '1d' > {output.list}
-         """
-
-# Filter results to get top hits
-rule get_top_50_evals:
-     input: rules.mmseqs2_convertalis.output.blast
-     output:
-         unfiltered="results/{database}/annotation/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis.tsv",
-         tophits="results/{database}/annotation/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis_tophits.tsv"
-     params:
-         outdir="results/{database}/annotation/mmseqs2/top_50/"
-     shell:
-         """
-         touch {output.unfiltered}
-         awk '$3>50 {{print}}' {input} > {output.unfiltered}
-         python workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
-         """
-
-# Extract sequences that didn't map for next iteration
-rule get_unaligned_sequences:
-    input:
-        aligned=rules.get_top_50_evals.output.unfiltered,
-        all_sequences=rules.prepare_current_iteration_input.output.current_input
-    output:
-        unmapped="results/{database}/annotation/faSomeRecords/unmapped/{target_db}_{mapping_db}.fa",
-        cumulative_unmapped="results/{database}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa"
-    conda: "envs/clustering.yml"
-    shell:
-        """
-        cut -f1 {input.aligned} | sed '1d' | uniq > /tmp/tmp.aligned
-        grep '>' {input.all_sequences} | sed "s/>//g" > /tmp/tmp.all
-        grep -F -v -x -f /tmp/tmp.aligned /tmp/tmp.all > /tmp/tmp.unaligned
-        # Current iteration's unmapped
-        faSomeRecords {input.all_sequences} /tmp/tmp.unaligned {output.unmapped}
-        # Cumulative unmapped for next iterations
-        cp {output.unmapped} {output.cumulative_unmapped}
-        """
-
-# Combine all final unmapped sequences from the last target database
-rule combine_final_unmapped_sequences:
-    input:
-        final_unmapped=expand("results/{{database}}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{last_target_db}.fa",
-                              mapping_db=config["annotation"]["mapping_databases"].keys(),
-                              last_target_db=TARGET_DBS[-1]),
-        # Ensure all databases have finished processing
-        checkpoints=expand("results/{{database}}/annotation/checkpoints/{target_db}_processed.done",
-                          target_db=TARGET_DBS)
-    output:
-        combined="results/{database}/annotation/faSomeRecords/final_unmapped/all_final_unmapped.fa"
-    shell:
-        """
-        cat {input.final_unmapped} > {output.combined}
-        """
-
-# Run linclust on the final unmapped sequences
-rule mmseqs2_linclust:
-    input: rules.combine_final_unmapped_sequences.output.combined
-    output:
-        outdir=directory("results/{database}/mmseqs2/linclust/"),
-        tsv="results/{database}/mmseqs2/linclust/unaligned_linclust_cluster.tsv"
-    params:
-        prefix="unaligned_linclust",
-        tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"]
-    conda: "envs/clustering.yml"
-    log: "logs/{database}/mmseqs2/linclust/mmseqs2_linclust.log"
-    threads: config["mmseqs2"]["linclust"]["threads"]
-    shell:
-        """
-        mmseqs easy-linclust {input} {output.outdir}/{params.prefix} \
-            {params.tmp_dir} --threads {threads} 2> {log}
-        """
-
-# Rule to collect all results at the end - depends on all databases being processed
-rule collect_annotation_results:
-    input:
-        tophits=expand("results/{{database}}/annotation/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis_tophits.tsv",
-                       target_db=TARGET_DBS,
-                       mapping_db=config["annotation"]["mapping_databases"].keys()),
-        # Wait for all database checkpoints to complete
-        checkpoints=expand("results/{{database}}/annotation/checkpoints/{target_db}_processed.done",
-                          target_db=TARGET_DBS)
-    output:
-        combined="results/{database}/annotation/combined_results.tsv"
-    shell:
-        """
-        # Combine all tophits files with appropriate headers
-        echo -e "query\ttarget\tpident\tdatabase" > {output.combined}
-        for file in {input.tophits}; do
-            db_info=$(basename $file | sed 's/_convertlis_tophits.tsv//')
-            awk -v db="$db_info" '{{print $0"\t"db}}' $file >> {output.combined}
-        done
-        """
-
-# Generate final report
-rule generate_annotation_report:
-    input:
-        combined=rules.collect_annotation_results.output.combined,
-        unmapped=expand("results/{{database}}/annotation/faSomeRecords/unmapped/{target_db}_{mapping_db}.fa",
-                        target_db=TARGET_DBS,
-                        mapping_db=config["annotation"]["mapping_databases"].keys()),
-        linclust=rules.mmseqs2_linclust.output.tsv
-    output:
-        report="results/{database}/annotation/final_report.html"
-    conda: "envs/clustering.yml"
-    script:
-        "../scripts/generate_report.py"

@@ -1,5 +1,41 @@
 include: "clustering.smk"
 
+
+# Rule to collect all results at the end - depends on all databases being processed
+rule collect_annotation_results:
+    input:
+        tophits=expand("results/{{database}}/annotation/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis_tophits.tsv",
+                       target_db=TARGET_DBS,
+                       mapping_db=config["annotation"]["mapping_databases"].keys()),
+        # Wait for all database checkpoints to complete
+        checkpoints=expand("results/{{database}}/annotation/checkpoints/{target_db}_processed.done",
+                          target_db=TARGET_DBS)
+    output:
+        combined="results/{database}/annotation/combined_results.tsv"
+    shell:
+        """
+        # Combine all tophits files with appropriate headers
+        echo -e "query\ttarget\tpident\tdatabase" > {output.combined}
+        for file in {input.tophits}; do
+            db_info=$(basename $file | sed 's/_convertlis_tophits.tsv//')
+            awk -v db="$db_info" '{{print $0"\t"db}}' $file >> {output.combined}
+        done
+        """
+
+# Generate final report
+rule generate_annotation_report:
+    input:
+        combined=rules.collect_annotation_results.output.combined,
+        unmapped=expand("results/{{database}}/annotation/faSomeRecords/unmapped/{target_db}_{mapping_db}.fa",
+                        target_db=TARGET_DBS,
+                        mapping_db=config["annotation"]["mapping_databases"].keys()),
+        linclust=rules.mmseqs2_linclust.output.tsv
+    output:
+        report="results/{database}/annotation/final_report.html"
+    conda: "envs/clustering.yml"
+    script:
+        "../scripts/generate_report.py"
+
 # Combines species with a 90% or greater identity match to the target database, 
 # and the unmapped regions to a list of species specific vectors by their centroid.
 rule combine_species_hits:
