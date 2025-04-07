@@ -4,8 +4,7 @@
     "annotation":{
 	"annotate_only":"True",
 	"mapping_databases":{
-		"mouse-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/protein_catalogue/protein_catalogue-50.tar.gz",
-		"zebra-fecal":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/zebrafish-fecal/v1.0/protein_catalogue/protein_catalogue-50.tar.gz"
+		"mouse-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/protein_catalogue/protein_catalogue-50.faa"
 	}
     },
     "target_db":{
@@ -16,8 +15,8 @@
 		"gtdb_url":""
 	},
 	"paths":{
-		"gtdb":"/fs/project/bradley.720/users/kananen.13/analysis/240916/phylogenize/db_conversion/midas1.2/resources/GTDB.fa",
-		"uhgp50":"/fs/project/bradley.720/users/kananen.13/analysis/240916/phylogenize/db_conversion/midas1.2/resources/uhgp-50.faa"
+		"uhgp50":"/fs/project/bradley.720/users/kananen.13/analysis/240916/phylogenize/db_conversion/midas1.2/resources/uhgp-50.faa",
+		"gtdb":"/fs/project/bradley.720/users/kananen.13/analysis/240916/phylogenize/db_conversion/midas1.2/resources/GTDB.fa"
 	}
     },
     "pepfile":"config/pepconfig.yml"

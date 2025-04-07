@@ -3,5 +3,5 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
-  - mmseqs2=14.7e284
-  - ucsc-fasomerecords=377
+  - mmseqs2=17.b804f
+  - ucsc-fasomerecords=469

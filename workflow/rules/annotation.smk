@@ -84,7 +84,7 @@ rule make_query_databases:
     output:
         index="results/{database}/annotations/make_query_databases/{mapping_db}/{mapping_db}.index",
         query_path=directory("results/{database}/annotations/make_query_databases/{mapping_db}/")
-    conda: "../envs/annotations.yml"
+    conda: "../envs/clustering.yml"
     log: "logs/{database}/annotations/make_query_databases/{mapping_db}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
@@ -98,7 +98,7 @@ rule make_target_databases:
     output:
         index="results/{database}/annotations/make_target_databases/{target_db}/{target_db}.index",
         target_path=directory("results/{database}/annotations/make_target_databases/{target_db}/")
-    conda: "../envs/annotations.yml"
+    conda: "../envs/clustering.yml"
     log: "logs/{database}/annotations/make_target_databases/{target_db}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
@@ -126,7 +126,7 @@ rule make_cumulative_query_databases:
     output:
         index="results/{database}/annotations/make_cumulative_query_databases/{mapping_db}/{mapping_db}_cumulative.index",
         query_path=directory("results/{database}/annotations/make_cumulative_query_databases/{mapping_db}/")
-    conda: "../envs/annotations.yml"
+    conda: "../envs/clustering.yml"
     log: "logs/{database}/annotations/make_cumulative_query_databases/{mapping_db}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
@@ -141,10 +141,10 @@ rule map_query:
        query=rules.make_cumulative_query_databases.output.query_path
     output:
         outdir=directory("results/{database}/annotation/map_query/{target_db}/{mapping_db}/"),
-        index="results/{database}/annotation/map_query/{target_db}/{mapping_db}/{mapping_db}_map.index"
+        #index="results/{database}/annotation/map_query/{target_db}/{mapping_db}/{mapping_db}_map.index"
     params:
         sensitivity=config["mmseqs2"]["map"]["sensitivity"]
-    conda: "../envs/annotations.yml"
+    conda: "../envs/clustering.yml"
     log: "logs/{database}/annotations/map_query/{target_db}_{mapping_db}.log"
     threads: config["mmseqs2"]["map"]["threads"]
     shell:
@@ -162,7 +162,7 @@ rule mmseqs2_convertalis:
      output:
          blast="results/{database}/annotation/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.8",
          list="results/{database}/annotation/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.list"
-     conda: "../envs/blast.yml"
+     conda: "../envs/clustering.yml"
      log: "logs/{database}/annotation/mmseqs2_convertalis_blast/{target_db}_{mapping_db}.log"
      threads: config["mmseqs2"]["convertalis"]["threads"]
      shell:
