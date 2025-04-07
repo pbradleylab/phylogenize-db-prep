@@ -1,10 +1,12 @@
 include: "mapping.smk"
 
+TARGET_DBS = list(config["target_db"]["paths"].keys())
+
 # Convert mmseqs results to blast format
 rule mmseqs2_convertalis:
      input:
          query=rules.make_current_query_databases.output.query_path,
-         target=rules.make_target_databases.output.target_path,
+         target=rules.make_targets.output.target_path,
          map=rules.map_query.output.outdir
      output:
          blast="results/{database}/annotation/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.8",
@@ -70,4 +72,22 @@ rule combine_final_unmapped_sequences:
     shell:
         """
         cat {input.final_unmapped} > {output.combined}
+        """
+
+# Run linclust on the final unmapped sequences
+rule mmseqs2_linclust:
+    input: rules.combine_final_unmapped_sequences.output.combined
+    output:
+        outdir=directory("results/{database}/mmseqs2/linclust/"),
+        tsv="results/{database}/mmseqs2/linclust/unaligned_linclust_cluster.tsv"
+    params:
+        prefix="unaligned_linclust",
+        tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"]
+    conda: "envs/clustering.yml"
+    log: "logs/{database}/mmseqs2/linclust/mmseqs2_linclust.log"
+    threads: config["mmseqs2"]["linclust"]["threads"]
+    shell:
+        """
+        mmseqs easy-linclust {input} {output.outdir}/{params.prefix} \
+            {params.tmp_dir} --threads {threads} 2> {log}
         """

@@ -6,7 +6,7 @@ min_version("6.0") # Enforces minimum conda version ~
 configfile: "config/config.json"
 configfile: "config/tools.json"
 pepfile: config["pepfile"]
-include: "rules/annotation.smk"
+include: "rules/matrix.smk"
 
 # Get the list of target databases from config
 TARGET_DBS = list(config["target_db"]["paths"].keys())
@@ -22,7 +22,7 @@ def get_final_output(wildcards):
             f"results/{config['database']}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{TARGET_DBS[-1]}.fa"
         )
     outputs.append(f"results/{config['database']}/mmseqs2/linclust/unaligned_linclust_cluster.tsv")
-    outputs.append(f"results/{config['database']}/annotation/final_report.html")
+    outputs.append(rules.combine_species_hits.output[0].format(database=config['database']))
 
     return outputs
 

@@ -1,5 +1,5 @@
-include: "query_db.smk"
-include: "target_db.smk"
+include: "query.smk"
+include: "target.smk"
 include: "translation.smk"
 
 # Map the amino acid sequences by similarity in the uniref50 database
@@ -16,7 +16,7 @@ include: "translation.smk"
 # Map queries to target database
 rule map_query:
     input:
-       target=rules.make_target_databases.output.target_path,
+       target=rules.make_targets.output.target_path,
        query=rules.make_current_query_databases.output.query_path,
        # If this is not the first database, wait for previous database processing to complete
        previous_checkpoint=lambda wildcards: (
