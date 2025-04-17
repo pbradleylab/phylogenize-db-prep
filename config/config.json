@@ -1,6 +1,6 @@
 {
     "indir":"",
-    "database":"custom_1",
+    "database":"custom_3",
     "annotation":{
 	"annotate_only":"True",
 	"mapping_databases":{
@@ -15,8 +15,8 @@
 		"gtdb_url":""
 	},
 	"paths":{
-		"uhgp50":"/fs/project/bradley.720/users/kananen.13/analysis/240916/phylogenize/db_conversion/midas1.2/resources/uhgp-50.faa",
-		"gtdb":"/fs/project/bradley.720/users/kananen.13/analysis/240916/phylogenize/db_conversion/midas1.2/resources/GTDB.fa"
+		"uniref50":"test/uniref50_test.faa",
+		"uhgp50":"/fs/project/bradley.720/users/kananen.13/analysis/240916/phylogenize/db_conversion/midas1.2/resources/uhgp-50.faa"
 	}
     },
     "pepfile":"config/pepconfig.yml"

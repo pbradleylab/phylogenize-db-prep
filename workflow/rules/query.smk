@@ -28,31 +28,24 @@ def get_cumulative_unmapped_queries(wildcards):
     """
     # Get the initial query sequences
     query = config["annotation"]["mapping_databases"].get(wildcards.mapping_db)
-    if not query:
-        raise ValueError(f"Query not found for database {wildcards.mapping_db}")
-
-    # Find the current target database's index
     current_target_index = TARGET_DBS.index(wildcards.target_db)
-
-    # If it's the first target database, use the initial full query
     if current_target_index == 0:
         return query
 
     # Otherwise, use the unmapped sequences from the previous database
     previous_target = TARGET_DBS[current_target_index - 1]
-    return f"results/{wildcards.database}/clustering/faSomeRecords/cumulative_unmapped/{wildcards.mapping_db}_after_{previous_target}.fa"
+    return(rules.faSomeRecords.output.cumulative_unmapped.format(database=wildcards.database, mapping_db=wildcards.mapping_db, target_db=previous_target))
 
 
 # Process input sequences for current iteration
 rule prepare_current_iteration_input:
     input: get_cumulative_unmapped_queries
-    output:
-        current_input="results/{database}/annotations/current_input/{target_db}/{mapping_db}_input.fa"
+    output:"results/{database}/query/prepare_current_iteration_input/{target_db}/{mapping_db}_input.fa"
     shell:
         """
         case {input} in
-            *.fa.gz|*.fasta.gz|*.faa.gz) gunzip -c {input} > {output.current_input} ;;
-            *) cp {input} {output.current_input} ;;
+            *.fa.gz|*.fasta.gz|*.faa.gz) gunzip -c {input} > {output} ;;
+            *) cp {input} {output} ;;
         esac
         """
 
@@ -91,7 +84,7 @@ checkpoint database_processing_checkpoint:
 
 # Create mmseqs database from input for current iteration
 rule make_current_query_databases:
-    input: rules.prepare_current_iteration_input.output.current_input
+    input: rules.prepare_current_iteration_input.output
     output:
         index="results/{database}/make_current_query_databases/{target_db}/{mapping_db}/{mapping_db}.index",
         query_path=directory("results/{database}/make_current_query_databases/{target_db}/{mapping_db}/")

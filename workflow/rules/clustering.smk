@@ -42,7 +42,7 @@ rule get_top_50_evals:
 rule faSomeRecords:
     input:
         aligned=rules.get_top_50_evals.output.unfiltered,
-        all_sequences=rules.prepare_current_iteration_input.output.current_input
+        all_sequences=rules.prepare_current_iteration_input.output
     output:
         unmapped="results/{database}/clustering/faSomeRecords/unmapped/{target_db}_{mapping_db}.fa",
         cumulative_unmapped="results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa"
