@@ -68,7 +68,7 @@ rule combine_final_unmapped_sequences:
             last_target_db=TARGET_DBS[-1]
         ),
         lambda wildcards: expand(
-            "results/{database}/clustering/checkpoints/{target_db}_processed.done",
+            "results/{database}/checkpoints/database_processing_checkpoint/{target_db}_processed.done",
             database=wildcards.database,
             target_db=TARGET_DBS
         )

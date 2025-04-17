@@ -56,10 +56,10 @@ rule prepare_current_iteration_input:
 rule make_query_databases:
     input: get_queries
     output:
-        index="results/{database}/make_query_databases/{mapping_db}/{mapping_db}.index",
-        query_path=directory("results/{database}/make_query_databases/{mapping_db}/")
+        index="results/{database}/query/make_query_databases/{mapping_db}/{mapping_db}.index",
+        query_path=directory("results/{database}/query/make_query_databases/{mapping_db}/")
     conda: "../envs/query.yml"
-    log: "logs/{database}/make_query_databases/{mapping_db}.log"
+    log: "logs/{database}/query/make_query_databases/{mapping_db}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """
@@ -70,13 +70,15 @@ rule make_query_databases:
 # Ensures that for each target the mapping database is fully run 
 checkpoint database_processing_checkpoint:
     input:
-        db_results = lambda wildcards: expand(
-            "results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa",
-            database=wildcards.database,
-            mapping_db=config["annotation"]["mapping_databases"].keys(),
-            target_db=wildcards.target_db
-        )
-    output:touch("results/{database}/checkpoints/{target_db}_processed.done")
+        db_results=lambda wildcards: [
+            rules.faSomeRecords.output.cumulative_unmapped.format(
+                database=wildcards.database,
+                mapping_db=mapping_db,
+                target_db=wildcards.target_db  # or previous_target if using a helper
+            )
+            for mapping_db in config["annotation"]["mapping_databases"].keys()
+        ]
+    output: touch("results/{database}/checkpoints/database_processing_checkpoint/{target_db}_processed.done")
     shell:
         """
         echo "Processing of target database {wildcards.target_db} is complete."
