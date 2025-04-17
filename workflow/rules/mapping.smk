@@ -28,7 +28,7 @@ rule map_query:
         index="results/{database}/map_query/{target_db}/{mapping_db}/{mapping_db}_map.index"
     params:
         sensitivity=config["mmseqs2"]["map"]["sensitivity"]
-    conda: "envs/mapping.yml"
+    conda: "../envs/mapping.yml"
     log: "logs/{database}/map_query/{target_db}_{mapping_db}.log"
     threads: config["mmseqs2"]["map"]["threads"]
     shell:

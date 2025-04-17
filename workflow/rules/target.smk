@@ -13,7 +13,7 @@ rule make_targets:
     output:
         index="results/{database}/make_targets/{target_db}/{target_db}.index",
         target_path=directory("results/{database}/make_targets/{target_db}/")
-    conda: "envs/target.yml"
+    conda: "../envs/target.yml"
     log: "logs/{database}/make_targets/{target_db}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:

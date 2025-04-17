@@ -40,7 +40,7 @@ def get_cumulative_unmapped_queries(wildcards):
 
     # Otherwise, use the unmapped sequences from the previous database
     previous_target = TARGET_DBS[current_target_index - 1]
-    return f"results/{wildcards.database}/annotation/faSomeRecords/cumulative_unmapped/{wildcards.mapping_db}_after_{previous_target}.fa"
+    return f"results/{wildcards.database}/clustering/faSomeRecords/cumulative_unmapped/{wildcards.mapping_db}_after_{previous_target}.fa"
 
 
 # Process input sequences for current iteration
@@ -65,7 +65,7 @@ rule make_query_databases:
     output:
         index="results/{database}/make_query_databases/{mapping_db}/{mapping_db}.index",
         query_path=directory("results/{database}/make_query_databases/{mapping_db}/")
-    conda: "envs/query.yml"
+    conda: "../envs/query.yml"
     log: "logs/{database}/make_query_databases/{mapping_db}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
@@ -78,7 +78,7 @@ rule make_query_databases:
 checkpoint database_processing_checkpoint:
     input:
         db_results = lambda wildcards: expand(
-            "results/{database}/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa",
+            "results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa",
             database=wildcards.database,
             mapping_db=config["annotation"]["mapping_databases"].keys(),
             target_db=wildcards.target_db
@@ -95,7 +95,7 @@ rule make_current_query_databases:
     output:
         index="results/{database}/make_current_query_databases/{target_db}/{mapping_db}/{mapping_db}.index",
         query_path=directory("results/{database}/make_current_query_databases/{target_db}/{mapping_db}/")
-    conda: "envs/query.yml"
+    conda: "../envs/query.yml"
     log: "logs/{database}/make_current_query_databases/{target_db}_{mapping_db}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:

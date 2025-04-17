@@ -20,8 +20,8 @@ rule combine_species_hits:
     shell:
         """
         echo -e "query\ttarget\tpident\tdatabase" > {output.txt}
-        cat {input.unmapped} | cut -f1  > /tmp/tmp.1
-        cat {input.unmapped} | cut -f2  > /tmp/tmp.2
+        cat {input.clustered} | cut -f1  > /tmp/tmp.1
+        cat {input.clustered} | cut -f2  > /tmp/tmp.2
         paste /tmp/tmp.2 /tmp/tmp.1 >> {output.txt} 
         # Combine all tophits files with appropriate headers
         for file in {input.tophits}; do

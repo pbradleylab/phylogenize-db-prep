@@ -11,7 +11,7 @@ rule mmseqs2_convertalis:
      output:
          blast="results/{database}/annotation/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.8",
          list="results/{database}/annotation/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.list"
-     conda: "envs/blast.yml"
+     conda: "../envs/clustering.yml"
      log: "logs/{database}/annotation/mmseqs2_convertalis_blast/{target_db}_{mapping_db}.log"
      threads: config["mmseqs2"]["convertalis"]["threads"]
      shell:
@@ -39,14 +39,14 @@ rule get_top_50_evals:
          """
 
 # Extract sequences that didn't map for next iteration
-rule get_unaligned_sequences:
+rule faSomeRecords:
     input:
         aligned=rules.get_top_50_evals.output.unfiltered,
         all_sequences=rules.prepare_current_iteration_input.output.current_input
     output:
-        unmapped="results/{database}/annotation/faSomeRecords/unmapped/{target_db}_{mapping_db}.fa",
-        cumulative_unmapped="results/{database}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa"
-    conda: "envs/clustering.yml"
+        unmapped="results/{database}/clustering/faSomeRecords/unmapped/{target_db}_{mapping_db}.fa",
+        cumulative_unmapped="results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa"
+    conda: "../envs/clustering.yml"
     shell:
         """
         cut -f1 {input.aligned} | sed '1d' | uniq > /tmp/tmp.aligned
@@ -83,7 +83,7 @@ rule mmseqs2_linclust:
     params:
         prefix="unaligned_linclust",
         tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"]
-    conda: "envs/clustering.yml"
+    conda: "../envs/clustering.yml"
     log: "logs/{database}/mmseqs2/linclust/mmseqs2_linclust.log"
     threads: config["mmseqs2"]["linclust"]["threads"]
     shell:
