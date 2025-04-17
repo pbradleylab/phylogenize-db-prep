@@ -7,7 +7,9 @@ rule mmseqs2_convertalis:
      input:
          query=rules.make_current_query_databases.output.query_path,
          target=rules.make_targets.output.target_path,
-         map=rules.map_query.output.outdir
+         linker=rules.map_query.output
+     params:
+         map=rules.map_query.params.outdir
      output:
          blast="results/{database}/clustering/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.8",
          list="results/{database}/clustering/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.list"
@@ -18,7 +20,7 @@ rule mmseqs2_convertalis:
          """
          mmseqs convertalis {input.query}/{wildcards.mapping_db} \
              {input.target}/{wildcards.target_db} \
-             {input.map}/{wildcards.mapping_db} {output.blast} --format-mode 4 \
+             {params.map}/{wildcards.mapping_db} {output.blast} --format-mode 4 \
              --format-output query,target,pident 2> {log}
          cut -f1 {output.blast} | sed '1d' > {output.list}
          """

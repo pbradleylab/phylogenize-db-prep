@@ -15,8 +15,8 @@ rule combine_species_hits:
                           target_db=TARGET_DBS,
                           database=config["database"])
     output:
-         txt="results/{database}/uniref50/mmseqs2/combined_species_hits/{database}.txt",
-         outdir=directory("results/{database}/uniref50/mmseqs2/combined_species_hits/")
+         txt="results/{database}/binary/combined_species_hits/{database}.txt",
+         outdir=directory("results/{database}/binary/combine_species_hits/combined_species_hits/")
     shell:
         """
         echo -e "query\ttarget\tpident\tdatabase" > {output.txt}
@@ -30,33 +30,16 @@ rule combine_species_hits:
         done
         """
 
-# Combine any database files run in previous iterations together for the final matrix
-rule combine_hits:
-    input: rules.combine_species_hits.output
-    output: 
-        txt="results/{database}/combined_hits/{database}.txt",
-        outdir=directory("results/{database}/combined_hits/")
-    params:
-        search_dir="results/{database}/",
-        name="{database}.txt"
-    shell:
-        """
-        bash workflow/scripts/combine_hits.sh {params.search_dir} {params.name} {output.txt}
-        """
-
-
 # Create a binary matrix of the hits > 50% and those that unmapped 
 # but clustered.
 rule create_species_matrix:
-    input: rules.combine_hits.output.outdir
+    input: rules.combine_species_hits.output.outdir
     output: 
-        out="results/{database}/final/species_matrix/{database}.txt",
-        dup="results/{database}/final/species_matrix/{database}.dups"
+        out="results/{database}/binary/final/species_matrix/{database}.txt",
+        dup="results/{database}/binary/species_matrix/{database}.dups"
     conda: "../envs/matrix.yml"
     shell:
         """
-        #mkdir -p $(dirname {output.out})
-        #touch {output.dup} && chmod 777 {output.dup}
         python workflow/scripts/combine_species.py \
             --output {output.out} \
             --dir {input} \

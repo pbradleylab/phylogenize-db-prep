@@ -21,8 +21,8 @@ def get_final_output(wildcards):
     #    outputs.append(
     #        f"results/{config['database']}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{TARGET_DBS[-1]}.fa"
     #    )
-    outputs.append(f"results/{config['database']}/mmseqs2/linclust/unaligned_linclust_cluster.tsv")
-    #outputs.append(rules.combine_species_hits.output[0].format(database=config['database']))
+    #outputs.append(f"results/{config['database']}/mmseqs2/linclust/unaligned_linclust_cluster.tsv")
+    outputs.append(rules.create_species_matrix.output[0].format(database=config['database']))
 
     return outputs
 

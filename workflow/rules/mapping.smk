@@ -25,10 +25,9 @@ rule map_query:
                 )
             if get_previous_target_db(wildcards) is not None else []
         )
-    output:
-        outdir=directory("results/{database}/mapping/map_query/{target_db}/{mapping_db}/"),
-        index="results/{database}/mapping/map_query/{target_db}/{mapping_db}/{mapping_db}_map.index"
+    output:"results/{database}/mapping/map_query/{target_db}/{mapping_db}/{mapping_db}.index"
     params:
+        outdir=directory("results/{database}/mapping/map_query/{target_db}/{mapping_db}/"),
         sensitivity=config["mmseqs2"]["map"]["sensitivity"]
     conda: "../envs/mapping.yml"
     log: "logs/{database}/mapping/map_query/{target_db}_{mapping_db}.log"
@@ -36,6 +35,6 @@ rule map_query:
     shell:
         """
         mmseqs search --threads {threads} {input.query}/{wildcards.mapping_db} \
-            {input.target}/{wildcards.target_db} {output.outdir}/{wildcards.mapping_db} \
+            {input.target}/{wildcards.target_db} {params.outdir}/{wildcards.mapping_db} \
             results/tmp50 --min-seq-id 0.50 {params.sensitivity} 2> {log}
         """

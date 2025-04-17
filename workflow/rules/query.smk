@@ -88,10 +88,10 @@ checkpoint database_processing_checkpoint:
 rule make_current_query_databases:
     input: rules.prepare_current_iteration_input.output
     output:
-        index="results/{database}/make_current_query_databases/{target_db}/{mapping_db}/{mapping_db}.index",
-        query_path=directory("results/{database}/make_current_query_databases/{target_db}/{mapping_db}/")
+        index="results/{database}/query/make_current_query_databases/{target_db}/{mapping_db}/{mapping_db}.index",
+        query_path=directory("results/{database}/query/make_current_query_databases/{target_db}/{mapping_db}/")
     conda: "../envs/query.yml"
-    log: "logs/{database}/make_current_query_databases/{target_db}_{mapping_db}.log"
+    log: "logs/{database}/query/make_current_query_databases/{target_db}_{mapping_db}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """
