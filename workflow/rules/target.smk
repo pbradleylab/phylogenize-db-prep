@@ -2,7 +2,7 @@ def get_targets(wildcards):
     """Get the path to the target database"""
     target = config["target_db"]["paths"].get(wildcards.target_db)
     if target:
-        return target
+        return(target)
     else:
         raise ValueError(f"Target not found for database {wildcards.target_db}")
 
@@ -11,10 +11,10 @@ def get_targets(wildcards):
 rule make_targets:
     input: get_targets
     output:
-        index="results/{database}/make_targets/{target_db}/{target_db}.index",
-        target_path=directory("results/{database}/make_targets/{target_db}/")
+        index="results/{database}/target/make_targets/{target_db}/{target_db}.index",
+        target_path=directory("results/{database}/target/make_targets/{target_db}/")
     conda: "../envs/target.yml"
-    log: "logs/{database}/make_targets/{target_db}.log"
+    log: "logs/{database}/target/make_targets/{target_db}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """

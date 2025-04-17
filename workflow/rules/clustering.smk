@@ -9,10 +9,10 @@ rule mmseqs2_convertalis:
          target=rules.make_targets.output.target_path,
          map=rules.map_query.output.outdir
      output:
-         blast="results/{database}/annotation/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.8",
-         list="results/{database}/annotation/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.list"
+         blast="results/{database}/clustering/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.8",
+         list="results/{database}/clustering/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.list"
      conda: "../envs/clustering.yml"
-     log: "logs/{database}/annotation/mmseqs2_convertalis_blast/{target_db}_{mapping_db}.log"
+     log: "logs/{database}/clustering/mmseqs2_convertalis/{target_db}_{mapping_db}.log"
      threads: config["mmseqs2"]["convertalis"]["threads"]
      shell:
          """
@@ -61,17 +61,22 @@ rule faSomeRecords:
 # Combine all final unmapped sequences from the last target database
 rule combine_final_unmapped_sequences:
     input:
-        final_unmapped=expand("results/{{database}}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{last_target_db}.fa",
-                              mapping_db=config["annotation"]["mapping_databases"].keys(),
-                              last_target_db=TARGET_DBS[-1]),
-        # Ensure all databases have finished processing
-        checkpoints=expand("results/{{database}}/annotation/checkpoints/{target_db}_processed.done",
-                          target_db=TARGET_DBS)
+        lambda wildcards: expand(
+            "results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{last_target_db}.fa",
+            database=wildcards.database,
+            mapping_db=config["annotation"]["mapping_databases"].keys(),
+            last_target_db=TARGET_DBS[-1]
+        ),
+        lambda wildcards: expand(
+            "results/{database}/clustering/checkpoints/{target_db}_processed.done",
+            database=wildcards.database,
+            target_db=TARGET_DBS
+        )
     output:
-        combined="results/{database}/annotation/faSomeRecords/final_unmapped/all_final_unmapped.fa"
+        combined="results/{database}/clustering/faSomeRecords/final_unmapped/all_final_unmapped.fa"
     shell:
         """
-        cat {input.final_unmapped} > {output.combined}
+        cat {input} > {output.combined}
         """
 
 # Run linclust on the final unmapped sequences

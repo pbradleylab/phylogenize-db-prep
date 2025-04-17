@@ -1,0 +1,13 @@
+name: anvio
+channels:
+  - anaconda
+  - bioconda
+  - conda-forge
+dependencies:
+  - hmmer=3.4
+  - seqkit=2.8.0
+  - prodigal
+  - python=3.10
+  - pandas
+  - pip
+  - polars

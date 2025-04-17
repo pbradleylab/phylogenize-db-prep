@@ -16,20 +16,22 @@ include: "translation.smk"
 # Map queries to target database
 rule map_query:
     input:
-       target=rules.make_targets.output.target_path,
-       query=rules.make_current_query_databases.output.query_path,
-       # If this is not the first database, wait for previous database processing to complete
-       previous_checkpoint=lambda wildcards: (
-           f"results/{wildcards.database}/annotation/checkpoints/{get_previous_target_db(wildcards)}_processed.done"
-           if get_previous_target_db(wildcards) is not None else []
-       )
+        target=rules.make_targets.output.target_path,
+        query=rules.make_current_query_databases.output.query_path,
+        previous=lambda wildcards: (
+            rules.database_processing_checkpoint.output[0].format(
+                    database=wildcards.database,
+                    target_db=get_previous_target_db(wildcards)
+                )
+            if get_previous_target_db(wildcards) is not None else []
+        )
     output:
-        outdir=directory("results/{database}/map_query/{target_db}/{mapping_db}/"),
-        index="results/{database}/map_query/{target_db}/{mapping_db}/{mapping_db}_map.index"
+        outdir=directory("results/{database}/mapping/map_query/{target_db}/{mapping_db}/"),
+        index="results/{database}/mapping/map_query/{target_db}/{mapping_db}/{mapping_db}_map.index"
     params:
         sensitivity=config["mmseqs2"]["map"]["sensitivity"]
     conda: "../envs/mapping.yml"
-    log: "logs/{database}/map_query/{target_db}_{mapping_db}.log"
+    log: "logs/{database}/mapping/map_query/{target_db}_{mapping_db}.log"
     threads: config["mmseqs2"]["map"]["threads"]
     shell:
         """

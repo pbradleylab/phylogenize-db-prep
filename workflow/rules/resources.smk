@@ -42,10 +42,8 @@ rule create_uhgp50:
         """
 
 rule index_uhgp50:
-    input:
-        uhgp50_fasta=rules.unpack_uhgp50.output.fasta
-    output:
-        index="resources/uhgp50/uhgp50.index"
+    input: rules.unpack_uhgp50.output.fasta
+    output: "resources/uhgp50/uhgp50.index"
     params:
         uhgp50_prefix="uhgp50",
         uhgp50_path="resources/uhgp50/"
