@@ -17,14 +17,15 @@ TARGET_DBS = list(config["target_db"]["paths"].keys())
 # Phylogenize.
 def get_final_output(wildcards):
     outputs = []
-    #for mapping_db in config["annotation"]["mapping_databases"].keys():
-    #    outputs.append(
-    #        f"results/{config['database']}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{TARGET_DBS[-1]}.fa"
-    #    )
-    #outputs.append(f"results/{config['database']}/mmseqs2/linclust/unaligned_linclust_cluster.tsv")
-    outputs.append(rules.create_species_matrix.output[0].format(database=config['database']))
-
+    for mapping_db in config["annotation"]["mapping_databases"].keys():
+        outputs.append(rules.get_binary.output[0].format(database=config['database'], mapping_db=mapping_db))
+        outputs.append(rules.get_tree.output[0].format(database=config['database'], mapping_db=mapping_db))
+        if config["annotation"]["16S"][mapping_db]["generate_for_16S"] == "True":
+            outputs.append(rules.get_16s.output[0].format(database=config['database'], mapping_db=mapping_db))
+        
     return outputs
+    
+
 
 rule all:
     input: get_final_output

@@ -4,7 +4,19 @@
     "annotation":{
 	"annotate_only":"True",
 	"mapping_databases":{
-		"mouse-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/protein_catalogue/protein_catalogue-50.faa"
+		"test":"test/test.faa"
+	},
+        "taxonomy":{
+                "test":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/genomes-all_metadata.tsv"
+        },
+	"tree":{
+		"test":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/phylogenies/bac120_iqtree.nwk"
+	},
+	"16S":{
+		"test":{
+			"generate_for_16S":"False",
+			"fasta":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/phylogenies/bac120_alignment.faa"
+		}
 	}
     },
     "target_db":{

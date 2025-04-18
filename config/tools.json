@@ -29,5 +29,8 @@
     },
     "transeq":{
         "convert_missing_to_x":"true"
+    },
+    "create_species_matrix":{
+	    "split_char":"_"
     }
 }
