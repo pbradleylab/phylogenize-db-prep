@@ -16,7 +16,7 @@ def transform(df):
     return(df)
 
 def translate(df, tax):
-    merged = df.join(tax["Genome", "Lineage"], on="Genome", how="left")
+    merged = df.join(tax["Genome", "Species_rep", "Lineage"], on="Genome", how="left")
     merged = merged.with_columns(
         pl.col("Lineage").str.replace_all(r"\b[a-z]__+", "").str.replace_all(r"_", " ").str.split(";"))
     merged = merged.with_columns([
