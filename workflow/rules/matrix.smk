@@ -9,16 +9,13 @@ def get_16s(wildcards):
 # and the unmapped regions to a list of species specific vectors by their centroid.
 rule combine_species_hits:
     input:
-        tophits=expand(rules.get_top_50_evals.output.tophits,
-                       target_db=TARGET_DBS,
-                       mapping_db=config["files"]["fasta"].keys(),
-                       database=config["database"]),
-        clustered=rules.mmseqs2_linclust.output.tsv,
-        # Wait for all database checkpoints to complete
-        checkpoints=expand(rules.database_processing_checkpoint.output,
-                          target_db=TARGET_DBS,
-                          mapping_db=config["files"]["fasta"].keys(),
-                          database=config["database"])
+        tophits=lambda wildcards: [
+            f for f in rules.get_top_50_evals.output.tophits
+            if f"_{wildcards.mapping_db}_" in f and f.startswith(f"results/{wildcards.database}/")],
+        clustered=lambda wildcards: f"results/{wildcards.database}/mmseqs2_linclust/{wildcards.mapping_db}/unaligned_linclust_cluster.tsv",
+        checkpoints=lambda wildcards: [
+            f"results/{wildcards.database}/checkpoints/database_processing_checkpoint/{wildcards.mapping_db}_{target_db}_processed.done"
+            for target_db in TARGET_DBS]
     output:"results/{database}/binary/combined_species_hits/{mapping_db}_{database}.tsv"
     shell:
         """

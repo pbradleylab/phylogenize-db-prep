@@ -61,22 +61,9 @@ rule faSomeRecords:
         """
 
 # Combine all final unmapped sequences from the last target database
-# Combine all final unmapped sequences from the last target database
 rule combine_final_unmapped_sequences:
-    input:
-        lambda wildcards: expand(
-            "results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{last_target_db}.fa",
-            database=wildcards.database,
-            mapping_db=config["files"]["fasta"].keys(),
-            last_target_db=TARGET_DBS[-1]
-        ),
-        lambda wildcards: expand(
-            "results/{database}/checkpoints/database_processing_checkpoint/{mapping_db}_{target_db}_processed.done",
-            database=wildcards.database,
-            mapping_db=config["files"]["fasta"].keys(),
-            target_db=TARGET_DBS
-        )
-    output:"results/{database}/clustering/faSomeRecords/final_unmapped/{target_db}_clustered.fa"
+    input:"results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_" + TARGET_DBS[-1] + ".fa",
+    output:"results/{database}/clustering/faSomeRecords/final_unmapped/{mapping_db}_clustered.fa"
     shell:
         """
         cat {input} > {output}
@@ -84,7 +71,7 @@ rule combine_final_unmapped_sequences:
 
 # Run linclust on the final unmapped sequences
 rule mmseqs2_linclust:
-    input: lambda wildcards: expand(rules.combine_final_unmapped_sequences.output, target_db=TARGET_DBS, database=wildcards.database)
+    input: lambda wildcards: expand(rules.combine_final_unmapped_sequences.output, mapping_db=config["files"]["fasta"].keys(), database=wildcards.database)
     output:
         outdir=directory("results/{database}/mmseqs2_linclust/{mapping_db}"),
         tsv="results/{database}/mmseqs2_linclust/{mapping_db}/unaligned_linclust_cluster.tsv"
