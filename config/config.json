@@ -1,21 +1,52 @@
 {
     "indir":"",
-    "database":"custom_3",
+    "database":"custom_test",
     "annotation":{
-	"annotate_only":"True",
-	"mapping_databases":{
-		"test":"test/test.faa"
+	"annotate_only":"True"
+    },
+    "files":{
+	"fasta":{
+		"mouse-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/protein_catalogue/protein_catalogue-50.faa",
+		"human-oral":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/human-oral/v1.0.1/protein_catalogue/protein_catalogue-50/protein_catalogue-50.faa",
+                "zebrafish-fecal":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/zebrafish-fecal/v1.0/protein_catalogue/protein_catalogue-50/protein_catalogue-50.faa",
+                "honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.faa"
+
+	},
+	"mapping":{
+		"mouse-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.tsv",
+		"human-oral":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/human-oral/v1.0.1/protein_catalogue/protein_catalogue-50/protein_catalogue-50.tsv",
+                "zebrafish-fecal":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/zebrafish-fecal/v1.0/protein_catalogue/protein_catalogue-50/protein_catalogue-50.tsv",
+                "honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.tsv"
 	},
         "taxonomy":{
-                "test":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/genomes-all_metadata.tsv"
+                "mouse-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/genomes-all_metadata.tsv",
+		"human-oral":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/human-oral/v1.0.1/genomes-all_metadata.tsv",
+                "zebrafish-fecal":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/zebrafish-fecal/v1.0/genomes-all_metadata.tsv",
+                "honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/genomes-all_metadata.tsv"
         },
 	"tree":{
-		"test":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/phylogenies/bac120_iqtree.nwk"
+		"mouse-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/phylogenies/bac120_iqtree.nwk",
+                "human-oral":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/human-oral/v1.0.1/phylogenies/bac120_iqtree.nwk",
+                "zebrafish-fecal":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/zebrafish-fecal/v1.0/phylogenies/bac120_iqtree.nwk",
+                "honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/phylogenies/bac120_iqtree.nwk"
 	},
 	"16S":{
-		"test":{
+		"mouse-gut":{
 			"generate_for_16S":"False",
-			"fasta":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/mouse-gut/v1.0/phylogenies/bac120_alignment.faa"
+			"fasta":""
+		},
+		"human-oral":{
+                        "generate_for_16S":"False",
+                        "fasta":""
+		},
+		"zebrafish-fecal":{
+                       "generate_for_16S":"False",
+                       "fasta":""
+ 
+		},
+		"honeybee-gut":{
+                       "generate_for_16S":"False",
+                       "fasta":""
 		}
 	}
     },
@@ -27,7 +58,7 @@
 		"gtdb_url":""
 	},
 	"paths":{
-		"uniref50":"test/uniref50_test.faa",
+		"uniref50":"/fs/project/bradley.720/db/uniref/230728/uniref50/uniref50.fasta",
 		"uhgp50":"/fs/project/bradley.720/users/kananen.13/analysis/240916/phylogenize/db_conversion/midas1.2/resources/uhgp-50.faa"
 	}
     },

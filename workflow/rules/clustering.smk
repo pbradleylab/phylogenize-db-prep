@@ -29,10 +29,10 @@ rule mmseqs2_convertalis:
 rule get_top_50_evals:
      input: rules.mmseqs2_convertalis.output.blast
      output:
-         unfiltered="results/{database}/annotation/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis.tsv",
-         tophits="results/{database}/annotation/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis_tophits.tsv"
+         unfiltered="results/{database}/clustering/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis.tsv",
+         tophits="results/{database}/clustering/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis_tophits.tsv"
      params:
-         outdir="results/{database}/annotation/mmseqs2/top_50/"
+         outdir="results/{database}/clustering/mmseqs2/top_50/"
      shell:
          """
          touch {output.unfiltered}
@@ -66,7 +66,7 @@ rule combine_final_unmapped_sequences:
         lambda wildcards: expand(
             "results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{last_target_db}.fa",
             database=wildcards.database,
-            mapping_db=config["annotation"]["mapping_databases"].keys(),
+            mapping_db=config["files"]["fasta"].keys(),
             last_target_db=TARGET_DBS[-1]
         ),
         lambda wildcards: expand(

@@ -6,7 +6,7 @@ configfile: "config/config.json"
 include: "translation.smk"
 
 def get_queries(wildcards):
-    query = config["annotation"]["mapping_databases"].get(wildcards.mapping_db)
+    query = config["files"]["fasta"].get(wildcards.mapping_db)
     if query:
         return query
     else:
@@ -27,7 +27,7 @@ def get_cumulative_unmapped_queries(wildcards):
     Generate the appropriate input based on the target database position in the sequence
     """
     # Get the initial query sequences
-    query = config["annotation"]["mapping_databases"].get(wildcards.mapping_db)
+    query = config["files"]["fasta"].get(wildcards.mapping_db)
     current_target_index = TARGET_DBS.index(wildcards.target_db)
     if current_target_index == 0:
         return query
@@ -76,7 +76,7 @@ checkpoint database_processing_checkpoint:
                 mapping_db=mapping_db,
                 target_db=wildcards.target_db  # or previous_target if using a helper
             )
-            for mapping_db in config["annotation"]["mapping_databases"].keys()
+            for mapping_db in config["files"]["fasta"].keys()
         ]
     output: touch("results/{database}/checkpoints/database_processing_checkpoint/{target_db}_processed.done")
     shell:

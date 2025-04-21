@@ -2,7 +2,7 @@ include: "clustering.smk"
 
 
 def get_16s(wildcards):
-    return(config["annotation"]["16S"][wildcards.mapping_db]["fasta"])
+    return(config["files"]["16S"][wildcards.mapping_db]["fasta"])
 
 
 # Combines species with a 90% or greater identity match to the target database, 
@@ -11,7 +11,7 @@ rule combine_species_hits:
     input:
         tophits=expand(rules.get_top_50_evals.output.tophits,
                        target_db=TARGET_DBS,
-                       mapping_db=config["annotation"]["mapping_databases"].keys(),
+                       mapping_db=config["files"]["fasta"].keys(),
                        database=config["database"]),
         clustered=rules.mmseqs2_linclust.output.tsv,
         # Wait for all database checkpoints to complete
@@ -41,7 +41,7 @@ rule get_taxonomy:
         tax="results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv"
     params:
         split_char=config["create_species_matrix"]["split_char"],
-        tax=lambda wildcards: config["annotation"]["taxonomy"][wildcards.mapping_db]
+        tax=lambda wildcards: config["files"]["taxonomy"][wildcards.mapping_db]
     conda: "../envs/matrix.yml"
     shell:
         """
@@ -66,7 +66,7 @@ rule get_tree:
     input: rules.get_taxonomy.output.out
     output: "results/{database}/binary/get_tree/{mapping_db}-tree.rds"
     params:
-        tree=lambda wildcards: config["annotation"]["tree"][wildcards.mapping_db]
+        tree=lambda wildcards: config["files"]["tree"][wildcards.mapping_db]
     conda: "../envs/matrix.yml"
     shell:
         """
