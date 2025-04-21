@@ -21,6 +21,7 @@ rule map_query:
         previous=lambda wildcards: (
             rules.database_processing_checkpoint.output[0].format(
                     database=wildcards.database,
+                    mapping_db=config["files"]["fasta"].keys(),
                     target_db=get_previous_target_db(wildcards)
                 )
             if get_previous_target_db(wildcards) is not None else []

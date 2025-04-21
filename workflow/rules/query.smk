@@ -74,14 +74,12 @@ checkpoint database_processing_checkpoint:
             rules.faSomeRecords.output.cumulative_unmapped.format(
                 database=wildcards.database,
                 mapping_db=mapping_db,
-                target_db=wildcards.target_db  # or previous_target if using a helper
-            )
-            for mapping_db in config["files"]["fasta"].keys()
-        ]
-    output: touch("results/{database}/checkpoints/database_processing_checkpoint/{target_db}_processed.done")
+                target_db=wildcards.target_db)
+            for mapping_db in config["files"]["fasta"].keys()]
+    output: touch("results/{database}/checkpoints/database_processing_checkpoint/{mapping_db}_{target_db}_processed.done")
     shell:
         """
-        echo "Processing of target database {wildcards.target_db} is complete."
+        echo "Processing of target database {wildcards.target_db} and query database {wildcards.mapping_db} is complete."
         """
 
 # Create mmseqs database from input for current iteration

@@ -61,6 +61,7 @@ rule faSomeRecords:
         """
 
 # Combine all final unmapped sequences from the last target database
+# Combine all final unmapped sequences from the last target database
 rule combine_final_unmapped_sequences:
     input:
         lambda wildcards: expand(
@@ -70,28 +71,28 @@ rule combine_final_unmapped_sequences:
             last_target_db=TARGET_DBS[-1]
         ),
         lambda wildcards: expand(
-            "results/{database}/checkpoints/database_processing_checkpoint/{target_db}_processed.done",
+            "results/{database}/checkpoints/database_processing_checkpoint/{mapping_db}_{target_db}_processed.done",
             database=wildcards.database,
+            mapping_db=config["files"]["fasta"].keys(),
             target_db=TARGET_DBS
         )
-    output:
-        combined="results/{database}/clustering/faSomeRecords/final_unmapped/all_final_unmapped.fa"
+    output:"results/{database}/clustering/faSomeRecords/final_unmapped/{target_db}_clustered.fa"
     shell:
         """
-        cat {input} > {output.combined}
+        cat {input} > {output}
         """
 
 # Run linclust on the final unmapped sequences
 rule mmseqs2_linclust:
-    input: rules.combine_final_unmapped_sequences.output.combined
+    input: lambda wildcards: expand(rules.combine_final_unmapped_sequences.output, target_db=TARGET_DBS, database=wildcards.database)
     output:
-        outdir=directory("results/{database}/mmseqs2/linclust/"),
-        tsv="results/{database}/mmseqs2/linclust/unaligned_linclust_cluster.tsv"
+        outdir=directory("results/{database}/mmseqs2_linclust/{mapping_db}"),
+        tsv="results/{database}/mmseqs2_linclust/{mapping_db}/unaligned_linclust_cluster.tsv"
     params:
         prefix="unaligned_linclust",
         tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"]
     conda: "../envs/clustering.yml"
-    log: "logs/{database}/mmseqs2/linclust/mmseqs2_linclust.log"
+    log: "logs/{database}/clustering/mmseqs2_linclust/{mapping_db}/mmseqs2_linclust.log"
     threads: config["mmseqs2"]["linclust"]["threads"]
     shell:
         """

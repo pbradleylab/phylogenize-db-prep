@@ -17,8 +17,9 @@ rule combine_species_hits:
         # Wait for all database checkpoints to complete
         checkpoints=expand(rules.database_processing_checkpoint.output,
                           target_db=TARGET_DBS,
+                          mapping_db=config["files"]["fasta"].keys(),
                           database=config["database"])
-    output:"results/{database}/binary/combined_species_hits/{database}.tsv"
+    output:"results/{database}/binary/combined_species_hits/{mapping_db}_{database}.tsv"
     shell:
         """
         echo -e "query\ttarget" > {output}
