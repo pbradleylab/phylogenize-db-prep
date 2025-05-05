@@ -1,6 +1,6 @@
 {
     "indir":"",
-    "database":"custom_test",
+    "database":"custom_fesnov",
     "annotation":{
 	"annotate_only":"True"
     },
@@ -59,7 +59,8 @@
 	},
 	"paths":{
 		"uniref50":"/fs/project/bradley.720/db/uniref/230728/uniref50/uniref50.fasta",
-		"uhgp50":"/fs/project/bradley.720/users/kananen.13/analysis/240916/phylogenize/db_conversion/midas1.2/resources/uhgp-50.faa"
+		"uhgp50":"/fs/project/bradley.720/users/kananen.13/analysis/240916/phylogenize/db_conversion/midas1.2/resources/uhgp-50.faa",
+		"fesnov":"//fs/project/bradley.720/db/FESNov/250421/microbial_genomes-v1.proteins.dups_reformatted.faa"
 	}
     },
     "pepfile":"config/pepconfig.yml"

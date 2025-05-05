@@ -3,4 +3,5 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
-  - mmseqs2=14.7e284
+  - phylogenize=0.91
+  - r-optparse=1.3.2

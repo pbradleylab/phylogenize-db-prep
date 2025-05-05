@@ -8,7 +8,9 @@ database.
 import argparse
 import polars as pl
 
-def transform(df):
+def transform(df, mapping):
+    df=df.join(mapping, on="query", how="left")
+    assert(True == False)
     df=df.with_columns([
         pl.col("query").str.split(args.split_char).list.get(0).alias("Genome")])
     prefix_ids=(df.select("Genome").unique().with_columns([(pl.arange(100001, 100001 + pl.len()).alias("cluster"))]))
@@ -30,8 +32,9 @@ def write_tax(tax, args):
 
 def main(args):
     df=pl.read_csv(args.input, separator="\t", truncate_ragged_lines=True)
-    tax=pl.read_csv(args.tax, separator="\t")
-    df=translate(transform(df), tax)
+    tax=pl.read_csv(args.tax, separator="\t"),
+    mapping=pl.read_csv(args.tax, separator="\t", has_header=False, new_columns=["query","target"])
+    df=translate(transform(df, mapping), tax)
 
     write_tax(df, args)
     df.write_csv(args.output, separator=",")
@@ -45,8 +48,8 @@ if __name__ == "__main__":
             help = "Directory containing all the files to combine")
     parser.add_argument("--split_char","-s",
             help = "Which charcter string to split on")
-    parser.add_argument("--tax","-t",
-            help = "Taxonomy file associated with the database.")
+    parser.add_argument("--mapping","-t",
+            help = "Mapping file with all centroids mapping to their nodes")
     parser.add_argument("--tax_output","-to",
             help = "Taxonomy file to be made for phylogenize database")
     args=parser.parse_args()

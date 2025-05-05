@@ -39,7 +39,8 @@ rule get_taxonomy:
         tax="results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv"
     params:
         split_char=config["create_species_matrix"]["split_char"],
-        tax=lambda wildcards: config["files"]["taxonomy"][wildcards.mapping_db]
+        tax=lambda wildcards: config["files"]["taxonomy"][wildcards.mapping_db],
+        mapping=lambda wildcards: config["files"]["mapping"][wildcards.mapping_db]
     conda: "../envs/matrix.yml"
     shell:
         """
@@ -48,7 +49,8 @@ rule get_taxonomy:
             --tax {params.tax} \
             --split_char {params.split_char} \
             --output {output.out} \
-            --tax_output {output.tax}
+            --tax_output {output.tax} \
+            --mapping {params.mapping}
         """
 
 rule get_binary:
