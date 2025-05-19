@@ -7,37 +7,45 @@ database.
 """
 import argparse
 import polars as pl
+import sys
 
-def transform(df, mapping):
-    df=df.join(mapping, on="query", how="left")
-    assert(True == False)
-    df=df.with_columns([
-        pl.col("query").str.split(args.split_char).list.get(0).alias("Genome")])
-    prefix_ids=(df.select("Genome").unique().with_columns([(pl.arange(100001, 100001 + pl.len()).alias("cluster"))]))
-    df=df.join(prefix_ids, on="Genome", how="left").drop("query")
-    return(df)
+# Makes the taxonomy file.
+def transform(df, mapping, args):
+    tmp=df.join(mapping, on="query", how="left")
+    tmp=tmp.with_columns([
+        pl.col("query").str.split(args.split_char).list.get(0).alias("query")])
+    prefix_ids=(tmp.select("query").unique().with_columns([(pl.arange(100001, 100001 + pl.len()).alias("cluster"))]))
+    tmp=tmp.join(prefix_ids, on="query", how="left")
+    out=tmp.with_columns([
+        pl.col("other").str.split(args.split_char).list.get(0).alias("other")])
+    return(out)
 
 def translate(df, tax):
-    merged = df.join(tax["Genome", "Species_rep", "Lineage"], on="Genome", how="left")
-    merged = merged.with_columns(
-        pl.col("Lineage").str.replace_all(r"\b[a-z]__+", "").str.replace_all(r"_", " ").str.split(";"))
-    merged = merged.with_columns([
+    tax=tax.with_columns([
+            pl.col("Lineage").str.replace_all(r"\b[a-z]__+", "").str.replace_all(r"_", " ").str.split(";"),
+            pl.col("Genome").str.split(args.split_char).list.get(0).alias("query")])
+    tax=tax.with_columns([
         pl.col("Lineage").list.get(i).alias(name)
         for i, name in enumerate(["domain", "phylum", "class", "order", "family", "genus", "species"])]).drop("Lineage")
+    
+    merged = df.join(tax["query", "domain", "phylum", "class", "order", "family", "genus", "species"], on="query", how="left").drop(["other","target","query"])
+    
     return(merged)
 
 def write_tax(tax, args):
-    final_tax=tax["domain", "phylum", "class", "order", "family", "genus", "species","cluster"]
+    final_tax=tax["domain", "phylum", "class", "order", "family", "genus", "species","cluster"].unique()
     final_tax.write_csv(args.tax_output, separator=",")
 
 def main(args):
     df=pl.read_csv(args.input, separator="\t", truncate_ragged_lines=True)
-    tax=pl.read_csv(args.tax, separator="\t"),
-    mapping=pl.read_csv(args.tax, separator="\t", has_header=False, new_columns=["query","target"])
-    df=translate(transform(df, mapping), tax)
+    tax=pl.read_csv(args.tax, separator="\t")
+    mapping=pl.read_csv(args.mapping, separator="\t", has_header=True, new_columns=["query","other"])
+    
+    out_binary=transform(df, mapping, args)
+    out_tax=translate(out_binary, tax)
 
-    write_tax(df, args)
-    df.write_csv(args.output, separator=",")
+    write_tax(out_tax, args)
+    out_binary.write_csv(args.output, separator=",")
     
 
 if __name__ == "__main__":
@@ -48,8 +56,10 @@ if __name__ == "__main__":
             help = "Directory containing all the files to combine")
     parser.add_argument("--split_char","-s",
             help = "Which charcter string to split on")
-    parser.add_argument("--mapping","-t",
+    parser.add_argument("--mapping","-m",
             help = "Mapping file with all centroids mapping to their nodes")
+    parser.add_argument("--tax","-t",
+            help = "input taxonomy file")
     parser.add_argument("--tax_output","-to",
             help = "Taxonomy file to be made for phylogenize database")
     args=parser.parse_args()

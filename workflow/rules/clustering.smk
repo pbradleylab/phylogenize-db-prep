@@ -71,10 +71,11 @@ rule combine_final_unmapped_sequences:
 
 # Run linclust on the final unmapped sequences
 rule mmseqs2_linclust:
-    input: lambda wildcards: expand(rules.combine_final_unmapped_sequences.output, mapping_db=config["files"]["fasta"].keys(), database=wildcards.database)
+    input: lambda wildcards: rules.combine_final_unmapped_sequences.output
     output:
-        outdir=directory("results/{database}/mmseqs2_linclust/{mapping_db}"),
-        tsv="results/{database}/mmseqs2_linclust/{mapping_db}/unaligned_linclust_cluster.tsv"
+        outdir=directory("results/{database}/clustering/mmseqs2_linclust/{mapping_db}"),
+        tsv="results/{database}/clustering/mmseqs2_linclust/{mapping_db}/unaligned_linclust_cluster.tsv",
+        fasta="results/{database}/clustering/mmseqs2_linclust/{mapping_db}/unaligned_linclust_rep_seq.fasta"
     params:
         prefix="unaligned_linclust",
         tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"]

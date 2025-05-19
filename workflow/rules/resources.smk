@@ -22,3 +22,12 @@ rule anvio_setup_kegg_kofams:
         """
         anvi-setup-kegg-data --kegg-data-dir {output}
         """
+
+rule break_fasta_apart:
+    input:rules.mmseqs2_linclust.output
+    output:directory("results/break_fasta_apart/")
+    conda:"../envs/annotation.yml"
+    shell:
+        """
+        seqkit split {input} -s 10000 -O {output}
+        """
