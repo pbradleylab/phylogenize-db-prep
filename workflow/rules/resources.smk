@@ -7,8 +7,8 @@ By Kathryn Kananen
 
 
 rule phylogenize_setup:
-    output:"results/tmp/phylogenize_setup.done"
-    log: "logs/{project}/resources/phylogenize_setup.log"
+    output:"results/temp/{database}/phylogenize_setup.done"
+    log: "logs/{database}/resources/phylogenize_setup.log"
     conda:"../envs/phylogenetics.yml"
     shell:
         """
@@ -21,13 +21,4 @@ rule anvio_setup_kegg_kofams:
     shell:
         """
         anvi-setup-kegg-data --kegg-data-dir {output}
-        """
-
-rule break_fasta_apart:
-    input:rules.mmseqs2_linclust.output
-    output:directory("results/break_fasta_apart/")
-    conda:"../envs/annotation.yml"
-    shell:
-        """
-        seqkit split {input} -s 10000 -O {output}
         """

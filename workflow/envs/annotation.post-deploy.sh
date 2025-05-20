@@ -1,1 +1,1 @@
-pip install -U git+https://github.com/merenlab/anvio@master
+pip install -U git+https://github.com/anvio/anvio@master

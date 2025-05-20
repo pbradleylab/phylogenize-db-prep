@@ -1,211 +1,144 @@
-def get_initial_queries(wildcards):
-    """
-    Return the initial full set of query sequences
-    """
-    query = config["annotation"]["mapping_databases"].get(wildcards.mapping_db)
-    if query:
-        return query
-    else:
-        raise ValueError(f"Query not found for database {wildcards.mapping_db}")
+from glob import glob
+import os
 
-def get_cumulative_unmapped_queries(wildcards):
-    """
-    Generate the cumulative unmapped sequences across all previous target databases
-    """
-    # Track the sequence of target databases from configuration
-    target_dbs = list(config["target_db"]["paths"].keys())
+include: "resources.smk"
+include: "matrix.smk"
+
+
+def get_all_links(wildcards):
+    return glob.glob(rules.link_information.output+"*.tsv")
+
+def get_chunks(wildcards):
+    # Get the checkpoint result directory (after it has finished)
+    cpoint = checkpoints.break_fasta_apart.get(database=wildcards.database, mapping_db=wildcards.mapping_db).output[0]
     
-    # Find the current target database's index
-    current_target_index = target_dbs.index(wildcards.target_db)
-    
-    # If it's the first target database, use the initial full query
-    if current_target_index == 0:
-        return get_initial_queries(wildcards)
-    
-    # Construct the path to the cumulative unmapped sequences
-    previous_targets = target_dbs[:current_target_index]
-    
-    # Generate a list of unmapped sequence files from previous iterations
-    unmapped_files = expand(
-        "results/{{database}}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa",
+    # Discover the .faa chunks
+    chunk_files = glob(os.path.join(cpoint, "*.faa"))
+    chunks = [os.path.splitext(os.path.basename(f))[0] for f in chunk_files]
+
+    # Return all expected outputs
+    return(expand(rules.anvio_export_functions.output[0],
         database=wildcards.database,
         mapping_db=wildcards.mapping_db,
-        target_db=previous_targets
-    )
-    
-    return unmapped_files
-
-def get_targets(wildcards):
-    target = config["target_db"]["paths"].get(wildcards.target_db)
-    if target:
-        return target
-    else:
-        raise ValueError(f"Target not found for database {wildcards.target_db}")
-
-def get_cumulative_unmapped_queries(wildcards):
-    """
-    Generate the cumulative unmapped sequences across all previous target databases
-    """
-    # Track the sequence of target databases from configuration
-    target_dbs = list(config["target_db"]["paths"].keys())
-    
-    # Get the initial query sequences
-    query = config["annotation"]["mapping_databases"].get(wildcards.mapping_db)
-    if not query:
-        raise ValueError(f"Query not found for database {wildcards.mapping_db}")
-    
-    # If no target_db is specified (like during database creation), return initial query
-    if not hasattr(wildcards, 'target_db'):
-        return query
-    
-    # Find the current target database's index
-    current_target_index = target_dbs.index(wildcards.target_db)
-    
-    # If it's the first target database, use the initial full query
-    if current_target_index == 0:
-        return query
-    
-    # Construct the path to the cumulative unmapped sequences
-    previous_targets = target_dbs[:current_target_index]
-    
-    # Generate a list of unmapped sequence files from previous iterations
-    unmapped_files = expand(
-        "results/{{database}}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa",
-        database=wildcards.database,
-        mapping_db=wildcards.mapping_db,
-        target_db=previous_targets
-    )
-    
-    return unmapped_files
+        chunk=chunks))
 
 
-rule make_query_databases:
-    input: get_initial_queries
-    output:
-        index="results/{database}/annotations/make_query_databases/{mapping_db}/{mapping_db}.index",
-        query_path=directory("results/{database}/annotations/make_query_databases/{mapping_db}/")
-    conda: "../envs/clustering.yml"
-    log: "logs/{database}/annotations/make_query_databases/{mapping_db}.log"
-    threads: config["mmseqs2"]["createdb"]["threads"]
+rule all_headers:
+    input: get_chunks
+    output: "results/{database}/annotation/get_headers/{mapping_db}.done"
+    shell: "touch {output}"
+
+checkpoint break_fasta_apart:
+    input:rules.mmseqs2_linclust.output.fasta
+    output:directory("results/{database}/annotation/break_fasta_apart/{mapping_db}")
+    conda:"../envs/annotation.yml"
     shell:
         """
-        mmseqs createdb {input} {output.query_path}/{wildcards.mapping_db} --dbtype 1 2> {log}
-        mmseqs createindex {output.query_path}/{wildcards.mapping_db} /tmp 2> {log}
+        seqkit split {input} -s 10000 -O {output}
         """
 
-rule make_target_databases:
-    input: get_targets
-    output:
-        index="results/{database}/annotations/make_target_databases/{target_db}/{target_db}.index",
-        target_path=directory("results/{database}/annotations/make_target_databases/{target_db}/")
-    conda: "../envs/clustering.yml"
-    log: "logs/{database}/annotations/make_target_databases/{target_db}.log"
-    threads: config["mmseqs2"]["createdb"]["threads"]
+rule get_headers:
+    input:get_chunks
+    output:"results/{database}/annotation/get_headers/{mapping_db}/{chunk}_headers.txt"
     shell:
         """
-        mmseqs createdb {input} {output.target_path}/{wildcards.target_db} --dbtype 1 2> {log}
-        mmseqs createindex {output.target_path}/{wildcards.target_db} /tmp 2> {log}
+        grep '>' {input.fasta} | sed 's/>//g' > {output}
+        awk -F, '{{print FNR,$0}}' OFS='\t' {output} > tmpFile && mv tmpFile {output}
         """
 
-rule make_cumulative_unmapped_queries:
-    input: get_cumulative_unmapped_queries
-    output:
-        cumulative_queries="results/{database}/annotations/make_query_databases/{mapping_db}/{mapping_db}_cumulative.fa"
-    shell:
-        """
-        # If multiple files are input, concatenate them
-        if [ $(echo "{input}" | wc -w) -gt 1 ]; then
-            cat {input} > {output.cumulative_queries}
-        else
-            cp {input} {output.cumulative_queries}
-        fi
-        """
-
-rule make_cumulative_query_databases:
-    input: rules.make_cumulative_unmapped_queries.output.cumulative_queries
-    output:
-        index="results/{database}/annotations/make_cumulative_query_databases/{mapping_db}/{mapping_db}_cumulative.index",
-        query_path=directory("results/{database}/annotations/make_cumulative_query_databases/{mapping_db}/")
-    conda: "../envs/clustering.yml"
-    log: "logs/{database}/annotations/make_cumulative_query_databases/{mapping_db}.log"
-    threads: config["mmseqs2"]["createdb"]["threads"]
-    shell:
-        """
-        mmseqs createdb {input} {output.query_path}/{wildcards.mapping_db}_cumulative --dbtype 1 2> {log}
-        mmseqs createindex {output.query_path}/{wildcards.mapping_db}_cumulative /tmp 2> {log}
-        """
-
-rule map_query:
-    input:
-       target=rules.make_target_databases.output.target_path,
-       query=rules.make_cumulative_query_databases.output.query_path
-    output:
-        outdir=directory("results/{database}/annotation/map_query/{target_db}/{mapping_db}/"),
-        #index="results/{database}/annotation/map_query/{target_db}/{mapping_db}/{mapping_db}_map.index"
+rule make_gene_calls:
+    input: rules.get_headers.output
+    output:"results/{database}/annotation/make_gene_calls/{chunk}.tsv"
     params:
-        sensitivity=config["mmseqs2"]["map"]["sensitivity"]
-    conda: "../envs/clustering.yml"
-    log: "logs/{database}/annotations/map_query/{target_db}_{mapping_db}.log"
-    threads: config["mmseqs2"]["map"]["threads"]
+        indir=rules.break_fasta_apart.output
     shell:
         """
-        mmseqs search --threads {threads} {input.query}/{wildcards.mapping_db}_cumulative \
-            {input.target}/{wildcards.target_db} {output.outdir}/{wildcards.mapping_db} \
-            results/tmp50 --min-seq-id 0.50 {params.sensitivity} 2> {log}
+        bash make_external_gene_calls.sh {params.indir}/{wildcards.chunk}.faa {output}
         """
 
-rule mmseqs2_convertalis:
-     input:
-         query=rules.make_cumulative_query_databases.output.query_path,
-         target=rules.make_target_databases.output.target_path,
-         map=rules.map_query.output.outdir
-     output:
-         blast="results/{database}/annotation/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.8",
-         list="results/{database}/annotation/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.list"
-     conda: "../envs/clustering.yml"
-     log: "logs/{database}/annotation/mmseqs2_convertalis_blast/{target_db}_{mapping_db}.log"
-     threads: config["mmseqs2"]["convertalis"]["threads"]
-     shell:
-         """
-         mmseqs convertalis {input.query}/{wildcards.mapping_db}_cumulative \
-             {input.target}/{wildcards.target_db} \
-             {input.map}/{wildcards.mapping_db} {output.blast} --format-mode 4 \
-             --format-output query,target,pident 2> {log}
-         cut -f1 {output.blast} | sed '1d' > {output.list}
-         """
-
-rule get_top_50_evals:
-     input: rules.mmseqs2_convertalis.output.blast
-     output:
-         unfiltered="results/{database}/annotation/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis.tsv",
-         tophits="results/{database}/annotation/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis_tophits.tsv"
-     params:
-         outdir="results/{database}/annotation/mmseqs2/top_50/"
-     shell:
-         """
-         touch {output.unfiltered}
-         awk '$3>50 {{print}}' {input} > {output.unfiltered}
-         python workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
-         """
-
-rule get_unaligned_sequences:
+rule anvio_contigs_db:
     input:
-        aligned=rules.get_top_50_evals.output.unfiltered,
-        all_sequences=rules.make_cumulative_unmapped_queries.output.cumulative_queries
-    output:
-        unmapped="results/{database}/annotation/faSomeRecords/unmapped/{target_db}_{mapping_db}.fa",
-        cumulative_unmapped="results/{database}/annotation/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa"
-    conda: "../envs/clustering.yml"
+        chunk=get_chunks,
+        gene_calls=rules.make_gene_calls.output
+    output:"results/{project}/annotation/anvio_contigs_db/{chunk}.db"
+    params:
+        indir=rules.break_fasta_apart.output
+    conda:"../envs/annotation.yml"
+    threads: config["anvio"]["contigs_db"]["threads"]
     shell:
         """
-        cut -f1 {input.aligned} | sed '1d' | uniq > /tmp/tmp.aligned
-        grep '>' {input.all_sequences} | sed "s/>//g" > /tmp/tmp.all
-        grep -F -v -x -f /tmp/tmp.aligned /tmp/tmp.all > /tmp/tmp.unaligned
-        
-        # Current iteration's unmapped
-        faSomeRecords {input.all_sequences} /tmp/tmp.unaligned {output.unmapped}
-        
-        # Cumulative unmapped for next iterations
-        cp {output.unmapped} {output.cumulative_unmapped}
+        anvi-gen-contigs-database -T {threads} -o {output} -f {params.indir}/{wildcards.chunk}.faa --external-gene-calls {input.gene_calls}
         """
 
+rule anvio_kegg_annotation:
+    input:
+        db=rules.anvio_contigs_db.output,
+        kofam=rules.anvio_setup_kegg_kofams.output
+    output:"results/temp/{database}/annotation/anvio_kegg_annotation/{mapping_db}/{chunk}_anvio_run_kegg_kofams.0"
+    conda:"../envs/anvio.yml"
+    log: "logs/{database}/annotation/anvio_run_kegg_kofams/{mapping_db}_{chunk}.log"
+    threads: config["anvio"]["run_kegg_annotations"]["threads"]
+    shell:
+        """
+        anvi-run-kegg-kofams -c {input.db} --kegg-data-dir {input.kofam} -T {threads} --just-do-it 2> {log}
+        touch {output}
+        """
+
+rule anvio_export_functions:
+    input:
+        kegg=rules.anvio_kegg_annotation.output,
+        db=rules.anvio_contigs_db.output,
+    output: "results/{database}/annotation/anvio_export_functions/{mapping_db}_{chunk}.tsv"
+    conda:"../envs/annotation.yml"
+    shell:
+        """
+        anvi-export-functions -c {input.db} -o {output}
+        """
+
+#----
+
+rule link_information:
+    input:
+        linker=rules.get_headers.output,
+        gene_calls=rules.make_gene_calls.output,
+        functions=rules.anvio_export_functions.output
+    output:"results/{database}/annotation/link_information/{chunk}_merged.tsv"
+    shell:
+        """
+        python merge_annotations.py {input.functions} {input.gene_calls} {input.linker} {output}
+        """
+
+rule combine_link_info:
+    input:get_all_links
+    output:"results/{database}/annotation/combine_link_info/ko_merged.tsv"
+    shell:
+        """
+        {head -n 1 {input[0]};
+        for f in {input[1:]}; do
+            tail -n +2 "$f";
+        done} > {output}
+        """
+
+
+
+rule link_sequences:
+    input:rules.combine_link_info.output
+    output:"results/{database}/annotation/link_sequences/annotations.tsv"
+    conda:"../envs/annotation.yml"
+    params:
+        node_heads="dummy"#config["node_heads"]
+    shell:
+        """
+        python sequence_to_annotation_linker.py {input} {params.node_heads} {output}
+        """
+
+rule link_nodes:
+    input:rules.link_sequences.output
+    output:"results/{database}/annotation//link_nodes/node_annotations.tsv"
+    conda:"../envs/annotation.yml"
+    params:
+        node_heads="dummy"#config["node_heads"]
+    shell:
+        """
+        python sequence_to_annotation_linker.py {params.node_heads} {input} {output}
+        """

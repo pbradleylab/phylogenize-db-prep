@@ -32,5 +32,13 @@
     },
     "create_species_matrix":{
 	    "split_char":"_"
+    },
+    "anvio":{
+	    "contigs_db":{
+		    "threads":40
+	    },
+	    "run_kegg_annotations":{
+                    "threads":40
+            }
     }
 }
