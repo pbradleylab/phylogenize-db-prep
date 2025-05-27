@@ -1,5 +1,5 @@
 from glob import glob
-import os
+import os, peppy
 
 include: "resources.smk"
 include: "matrix.smk"
@@ -9,24 +9,24 @@ def get_all_links(wildcards):
     return glob.glob(rules.link_information.output+"*.tsv")
 
 def get_chunks(wildcards):
-    # Get the checkpoint result directory (after it has finished)
-    cpoint = checkpoints.break_fasta_apart.get(database=wildcards.database, mapping_db=wildcards.mapping_db).output[0]
-    
-    # Discover the .faa chunks
-    chunk_files = glob(os.path.join(cpoint, "*.faa"))
-    chunks = [os.path.splitext(os.path.basename(f))[0] for f in chunk_files]
-
-    # Return all expected outputs
-    return(expand(rules.anvio_export_functions.output[0],
+    chunk_dir=checkpoints.break_fasta_apart.get(
         database=wildcards.database,
-        mapping_db=wildcards.mapping_db,
-        chunk=chunks))
+        mapping_db=wildcards.mapping_db).output[0]
 
+    # extract chunks
+    chunks=glob_wildcards(os.path.join(chunk_dir, "/*.fasta"))
+    print(chunks)
+    #print(rules.break_fasta_apart.output+"/{chunk}.")
 
-rule all_headers:
-    input: get_chunks
-    output: "results/{database}/annotation/get_headers/{mapping_db}.done"
-    shell: "touch {output}"
+def get_annotations(wildcards):
+    chunk_dir=checkpoints.break_fasta_apart.get(
+        database=wildcards.database,
+        mapping_db=wildcards.mapping_db).output[0]
+
+    # extract chunks
+    chunks=glob_wildcards(os.path.join(chunk_dir, "*.faa"))
+    out=expand(rules.get_headers.output, database=wildcards.database, mapping_db=wildcards.mapping_db, chunk=chunks)
+    return(out)
 
 checkpoint break_fasta_apart:
     input:rules.mmseqs2_linclust.output.fasta
@@ -42,12 +42,29 @@ rule get_headers:
     output:"results/{database}/annotation/get_headers/{mapping_db}/{chunk}_headers.txt"
     shell:
         """
-        grep '>' {input.fasta} | sed 's/>//g' > {output}
-        awk -F, '{{print FNR,$0}}' OFS='\t' {output} > tmpFile && mv tmpFile {output}
+        echo {wildcards.chunk}
+        #grep '>' {input.fasta} | sed 's/>//g' > {output}
+        #awk -F, '{{print FNR,$0}}' OFS='\t' {output} > tmpFile && mv tmpFile {output}
         """
 
+rule run_anntoation:
+    input:get_annotations
+    output:"results/{database}/run_anntoation/{mapping_db}.done"
+    shell:
+        """
+        echo "hit"
+        """
+
+# -------
+
+
+
+
+
 rule make_gene_calls:
-    input: rules.get_headers.output
+    input: 
+        fasta=rules.break_fasta_apart.output[0]+"/{chunk}.faa",
+        headers=rules.get_headers.output
     output:"results/{database}/annotation/make_gene_calls/{chunk}.tsv"
     params:
         indir=rules.break_fasta_apart.output
@@ -55,6 +72,8 @@ rule make_gene_calls:
         """
         bash make_external_gene_calls.sh {params.indir}/{wildcards.chunk}.faa {output}
         """
+# ======
+
 
 rule anvio_contigs_db:
     input:
