@@ -12,8 +12,9 @@ args = parser.parse_args()
 # merge the files together by the gene calling id
 functions=pl.read_csv(args.functions, separator='\t')
 linker=pl.read_csv(args.linker, separator='\t', has_header=True)
-linker.columns=["linker_info","node_head"]
+functions.columns=["query","linker_info"]
 
 merged=functions.join(linker, on="linker_info")
+merged.columns=["linker_info","node_head","gene_id","accession","function"]
 
-merged.write_csv(args.output, separator='\t', include_header=True)
+merged["linker_info","node_head","accession","function"].write_csv(args.output, include_header=True)

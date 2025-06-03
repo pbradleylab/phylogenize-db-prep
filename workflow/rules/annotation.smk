@@ -83,11 +83,12 @@ checkpoint break_fasta_apart:
 
 rule get_headers:
     input:
-        clustered=rules.mmseqs2_linclust.output.fasta,
+        clustered=rules.get_fasta_seqs_to_annotate.output.fasta,
         fasta=get_fasta
     output:
         og_header="results/{database}/annotation/get_headers/{mapping_db}/{chunk}_header.txt",
         temp=temporary("results/{database}/annotation/get_headers/{mapping_db}/{chunk}.tmp")
+    conda:"../envs/annotation.yml"
     shell:
         """
         echo "gene_callers_id\tlinker_info" > {output.og_header} 
@@ -96,8 +97,8 @@ rule get_headers:
         
         start=$(head -n1 {output.temp})
         end=$(tail -n1 {output.temp})
-         
-        awk "/^>/{{c++}} c >= $start  && c <= $end" {input.clustered} | grep '>' | sed 's/>//g' > {output.temp}
+        
+        seqkit range -r $start:$end {input.clustered} | grep '>' | sed 's/>//g' | sed 's/ .*//g' > {output.temp}
         awk -F, '{{print FNR-1,$0}}' OFS='\t' {output.temp} >> {output.og_header}
         """
 

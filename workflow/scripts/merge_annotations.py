@@ -19,6 +19,5 @@ merged=pd.merge(functions, genecalls, on="gene_callers_id")
 merged=pd.merge(merged, linker, on="gene_callers_id")
 filt=merged[merged["source_x"]=="KOfam"]
 filt=filt[["gene_callers_id","linker_info", "accession","function"]]
-print(filt)
 
 filt.to_csv(args.output, index=False, sep="\t")
