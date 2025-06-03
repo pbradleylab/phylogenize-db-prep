@@ -175,13 +175,14 @@ rule combine_link_info:
 rule link_nodes:
     input:
         seqs=rules.combine_link_info.output,
-        merged=rules.combine_species_hits.output
+        merged=rules.combine_species_hits.output,
+        internal_map=rules.get_taxonomy.output.out
     output:"results/{database}/annotation/link_nodes/{mapping_db}/node_annotations.tsv"
     conda:"../envs/annotation.yml"
     params:
     shell:
         """
-        python workflow/scripts/sequence_to_annotation_linker.py {input.merged} {input.seqs} {output}
+        python workflow/scripts/sequence_to_annotation_linker.py {input.merged} {input.seqs} {input.internal_map} {output}
         """
 
 rule run_annotation:

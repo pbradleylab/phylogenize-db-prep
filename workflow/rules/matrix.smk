@@ -38,7 +38,7 @@ rule combine_species_hits:
 rule get_taxonomy:
     input: rules.combine_species_hits.output
     output: 
-        out=temp("results/{database}/binary/get_taxonomy/{mapping_db}-binary-temp.csv"),
+        out=temporary("results/{database}/binary/get_taxonomy/{mapping_db}-binary-temp.csv"),
         tax="results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv"
     params:
         split_char=config["create_species_matrix"]["split_char"],
