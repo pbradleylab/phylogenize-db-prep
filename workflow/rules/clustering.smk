@@ -47,15 +47,18 @@ rule faSomeRecords:
         all_sequences=rules.prepare_current_iteration_input.output
     output:
         unmapped="results/{database}/clustering/faSomeRecords/unmapped/{target_db}_{mapping_db}.fa",
-        cumulative_unmapped="results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa"
+        cumulative_unmapped="results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.fa",
+        tmp_unaligned="results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.unaligned",
+        tmp_aligned="results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.aligned",
+        tmp_all="results/{database}/clustering/faSomeRecords/cumulative_unmapped/{mapping_db}_after_{target_db}.all"
     conda: "../envs/clustering.yml"
     shell:
         """
-        cut -f1 {input.aligned} | sed '1d' | uniq > /tmp/tmp.aligned
-        grep '>' {input.all_sequences} | sed "s/>//g" > /tmp/tmp.all
-        grep -F -v -x -f /tmp/tmp.aligned /tmp/tmp.all > /tmp/tmp.unaligned
+        cut -f1 {input.aligned} | sed '1d' | uniq > {output.tmp_aligned}
+        grep '>' {input.all_sequences} | sed "s/>//g" | sed "s/ .*//g" > {output.tmp_all}
+        grep -F -v -x -f {output.tmp_aligned} {output.tmp_all} > {output.tmp_unaligned}
         # Current iteration's unmapped
-        faSomeRecords {input.all_sequences} /tmp/tmp.unaligned {output.unmapped}
+        faSomeRecords {input.all_sequences} {output.tmp_unaligned} {output.unmapped}
         # Cumulative unmapped for next iterations
         cp {output.unmapped} {output.cumulative_unmapped}
         """

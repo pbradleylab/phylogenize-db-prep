@@ -27,15 +27,13 @@ def get_cumulative_unmapped_queries(wildcards):
     Generate the appropriate input based on the target database position in the sequence
     """
     # Get the initial query sequences
-    query = config["files"]["fasta"].get(wildcards.mapping_db)
     current_target_index = TARGET_DBS.index(wildcards.target_db)
     if current_target_index == 0:
-        return query
-
-    # Otherwise, use the unmapped sequences from the previous database
-    previous_target = TARGET_DBS[current_target_index - 1]
-    return(rules.faSomeRecords.output.cumulative_unmapped.format(database=wildcards.database, mapping_db=wildcards.mapping_db, target_db=previous_target))
-
+        return config["files"]["fasta"].get(wildcards.mapping_db)
+    else:
+        previous_target = TARGET_DBS[current_target_index - 1]
+        return(rules.faSomeRecords.output.cumulative_unmapped.format(database=wildcards.database, mapping_db=wildcards.mapping_db, target_db=previous_target))
+ 
 
 # Process input sequences for current iteration
 rule prepare_current_iteration_input:

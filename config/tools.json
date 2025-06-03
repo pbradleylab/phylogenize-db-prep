@@ -35,10 +35,10 @@
     },
     "anvio":{
 	    "contigs_db":{
-		    "threads":40
+		    "threads":1
 	    },
 	    "run_kegg_annotations":{
-                    "threads":40
+                    "threads":1
             }
     }
 }

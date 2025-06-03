@@ -42,8 +42,38 @@ def get_annotations(wildcards):
     return(out)
 
 
+rule get_fasta_seqs_to_annotate:
+    input: 
+        mapped=rules.combine_species_hits.output,
+        clustered=rules.mmseqs2_linclust.output.fasta
+    output: 
+        fasta=temporary("results/{database}/annotation/get_fasta_seqs_to_annotate/{mapping_db}.fasta"),
+        mapping=temporary("results/{database}/annotation/get_fasta_seqs_to_annotate/{mapping_db}.txt")
+    params:
+        database=list(config["target_db"]["paths"].values())
+    conda: "../envs/clustering.yml"
+    shell:
+        """
+        cut -f2 {input.mapped} > {output.mapping}
+        for f in {params.database}
+        do
+            faSomeRecords $f {output.mapping} stdout >> {output.fasta}
+        done
+        cat {input.clustered} >> {output.fasta}
+        """
+
+rule anvio_reformat_fasta:
+    input:rules.get_fasta_seqs_to_annotate.output.fasta
+    output:"results/{database}/annotation/anvio_reformat_fasta/{mapping_db}.fasta"
+    conda:"../envs/annotation.yml"
+    shell:
+        """
+        anvi-script-reformat-fasta --simplify-names {input} -o {output} 
+        """
+
+# remember to change get_header if -s is changed in this checkpoint
 checkpoint break_fasta_apart:
-    input:rules.mmseqs2_linclust.output.fasta
+    input:rules.anvio_reformat_fasta.output
     output:directory("results/{database}/annotation/break_fasta_apart/{mapping_db}")
     conda:"../envs/annotation.yml"
     shell:
@@ -52,20 +82,32 @@ checkpoint break_fasta_apart:
         """
 
 rule get_headers:
-    input:get_fasta
-    output:"results/{database}/annotation/get_headers/{mapping_db}/{chunk}_headers.txt"
+    input:
+        clustered=rules.mmseqs2_linclust.output.fasta,
+        fasta=get_fasta
+    output:
+        og_header="results/{database}/annotation/get_headers/{mapping_db}/{chunk}_header.txt",
+        temp=temporary("results/{database}/annotation/get_headers/{mapping_db}/{chunk}.tmp")
     shell:
         """
-        grep '>' {input} | sed 's/>//g' > {output}
-        awk -F, '{{print FNR,$0}}' OFS='\t' {output} > tmpFile && mv tmpFile {output}
+        echo "gene_callers_id\tlinker_info" > {output.og_header} 
+        in=$(echo {input.fasta} | tr ' ' '\\n' | grep '{wildcards.chunk}\\.fasta')
+        grep ">" "$in" | sed 's/>c_//g' | sed 's/^0*//' > {output.temp}
+        
+        start=$(head -n1 {output.temp})
+        end=$(tail -n1 {output.temp})
+         
+        awk "/^>/{{c++}} c >= $start  && c <= $end" {input.clustered} | grep '>' | sed 's/>//g' > {output.temp}
+        awk -F, '{{print FNR-1,$0}}' OFS='\t' {output.temp} >> {output.og_header}
         """
 
 rule make_gene_calls:
-    input: rules.get_headers.output
+    input: get_fasta
     output:"results/{database}/annotation/make_gene_calls/{mapping_db}/{chunk}.tsv"
     shell:
         """
-        bash make_external_gene_calls.sh {input} {output}
+        in=$(echo {input} | tr ' ' '\\n' | grep '{wildcards.chunk}\\.fasta')
+        bash workflow/scripts/make_external_gene_calls.sh $in {output}
         """
 
 rule anvio_contigs_db:
@@ -77,7 +119,8 @@ rule anvio_contigs_db:
     threads: config["anvio"]["contigs_db"]["threads"]
     shell:
         """
-        anvi-gen-contigs-database -T {threads} -o {output} -f {input.faa} --external-gene-calls {input.gene_calls}
+        in=$(echo {input.faa} | tr ' ' '\n' | grep '{wildcards.chunk}.fasta')
+        anvi-gen-contigs-database --allow-amino-acid-contig-db -T {threads} -o {output} -f $in --external-gene-calls {input.gene_calls}
         """
 
 rule anvio_kegg_annotation:
@@ -107,13 +150,13 @@ rule anvio_export_functions:
 
 rule link_information:
     input:
-        linker=rules.get_headers.output,
+        linker=rules.get_headers.output.og_header,
         gene_calls=rules.make_gene_calls.output,
         functions=rules.anvio_export_functions.output
     output:"results/{database}/annotation/link_information/{mapping_db}/{chunk}_merged.tsv"
     shell:
         """
-        python ../scripts/merge_annotations.py {input.functions} {input.gene_calls} {input.linker} {output}
+        python workflow/scripts/merge_annotations.py {input.functions} {input.gene_calls} {input.linker} {output}
         """
 
 rule combine_link_info:
@@ -121,33 +164,23 @@ rule combine_link_info:
     output:"results/{database}/annotation/combine_link_info/{mapping_db}/ko_merged.tsv"
     shell:
         """
-        head -n 1 {input}[0] > {output}
+        head -n 1 {input[0]} > {output}
 
-        for f in {input}[1:]; do
+        for f in {input}; do
             tail -n +2 "$f" >> {output}
         done
         """
 
-rule link_sequences:
-    input:rules.combine_link_info.output
-    output:"results/{database}/annotation/link_sequences/{mapping_db}/annotations.tsv"
-    conda:"../envs/annotation.yml"
-    params:
-        node_heads="dummy"#config["node_heads"]
-    shell:
-        """
-        python sequence_to_annotation_linker.py {input} {params.node_heads} {output}
-        """
-
 rule link_nodes:
-    input:rules.link_sequences.output
+    input:
+        seqs=rules.combine_link_info.output,
+        merged=rules.combine_species_hits.output
     output:"results/{database}/annotation/link_nodes/{mapping_db}/node_annotations.tsv"
     conda:"../envs/annotation.yml"
     params:
-        node_heads="dummy"#config["node_heads"]
     shell:
         """
-        python sequence_to_annotation_linker.py {params.node_heads} {input} {output}
+        python workflow/scripts/sequence_to_annotation_linker.py {input.merged} {input.seqs} {output}
         """
 
 rule run_annotation:
