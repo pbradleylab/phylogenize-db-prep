@@ -77,7 +77,7 @@ rule get_tree:
     conda: "../envs/matrix.yml"
     shell:
         """
-        Rscript workflow/scripts/make_tree.R {input} {params.tree} {output}
+        Rscript workflow/scripts/make_tree.R {params.tree} {output}
         """
 
 rule get_16s:

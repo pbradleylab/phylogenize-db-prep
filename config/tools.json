@@ -38,7 +38,7 @@
 		    "threads":1
 	    },
 	    "run_kegg_annotations":{
-                    "threads":1
+                    "threads":16
             }
     }
 }

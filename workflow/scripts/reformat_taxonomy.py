@@ -10,14 +10,19 @@ import polars as pl
 import sys
 
 # Makes the taxonomy file.
-def transform(df, mapping, args):
+def transform(df, mapping, tax, args):
     tmp=df.join(mapping, on="query", how="left")
     tmp=tmp.with_columns([
         pl.col("query").str.split(args.split_char).list.get(0).alias("query")])
-    prefix_ids=(tmp.select("query").unique().with_columns([(pl.arange(100001, 100001 + pl.len()).alias("cluster"))]))
-    tmp=tmp.join(prefix_ids, on="query", how="left")
+    
+    tax=tax["Genome","Species_rep"]
+    tax.columns=["query","cluster"]
+
+    tmp=tmp.join(tax, on="query", how="left")
+   
     out=tmp.with_columns([
         pl.col("other").str.split(args.split_char).list.get(0).alias("other")])
+    
     return(out)
 
 def translate(df, tax):
@@ -40,8 +45,9 @@ def main(args):
     df=pl.read_csv(args.input, separator="\t", truncate_ragged_lines=True)
     tax=pl.read_csv(args.tax, separator="\t")
     mapping=pl.read_csv(args.mapping, separator="\t", has_header=True, new_columns=["query","other"])
-    
-    out_binary=transform(df, mapping, args)
+    print(mapping) 
+    out_binary=transform(df, mapping, tax, args)
+    print(out_binary)
     out_tax=translate(out_binary, tax)
 
     write_tax(out_tax, args)

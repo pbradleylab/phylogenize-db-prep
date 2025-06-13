@@ -7,6 +7,7 @@ configfile: "config/config.json"
 configfile: "config/tools.json"
 pepfile: config["pepfile"]
 include: "rules/annotation.smk"
+include: "rules/pangenome.smk"
 
 # Get the list of target databases from config
 TARGET_DBS = list(config["target_db"]["paths"].keys())
@@ -18,10 +19,16 @@ TARGET_DBS = list(config["target_db"]["paths"].keys())
 def get_final_output(wildcards):
     outputs = []
     for mapping_db in config["files"]["fasta"].keys():
+        #if config["mode"]["pangenome"]["start_with_no_pangenome"] == True:
+        #    outputs.append(rules.make_pangenome_contigs_db.output[0].format(database=config['database']))
+
         outputs.append(rules.get_binary.output[0].format(database=config['database'], mapping_db=mapping_db))
         outputs.append(rules.get_tree.output[0].format(database=config['database'], mapping_db=mapping_db))
-        if config["files"]["16S"][mapping_db]["generate_for_16S"] == "True":
-            outputs.append(rules.get_16s.output[0].format(database=config['database'], mapping_db=mapping_db))
+        
+        # Not yet implemented
+        #if config["files"]["16S"][mapping_db]["generate_for_16S"] == "True":
+        #    outputs.append(rules.get_16s.output[0].format(database=config['database'], mapping_db=mapping_db))
+        
         outputs.append(rules.run_annotation.output[0].format(database=config['database'], mapping_db=mapping_db)) 
     return(outputs)
     

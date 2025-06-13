@@ -25,9 +25,31 @@ rule mmseqs2_convertalis:
          cut -f1 {output.blast} | sed '1d' > {output.list}
          """
 
+rule mmseqs2_convertalis_full_blast:
+     input:
+         query=rules.make_current_query_databases.output.query_path,
+         target=rules.make_targets.output.target_path,
+         linker=rules.map_query.output
+     params:
+         map=rules.map_query.params.outdir
+     output:"results/{database}/clustering/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.8"
+     conda: "../envs/clustering.yml"
+     log: "logs/{database}/clustering/mmseqs2_convertalis/{target_db}_{mapping_db}.log"
+     threads: config["mmseqs2"]["convertalis"]["threads"]
+     shell:
+         """
+         mmseqs convertalis {input.query}/{wildcards.mapping_db} \
+             {input.target}/{wildcards.target_db} \
+             {params.map}/{wildcards.mapping_db} {output} --format-mode 4 \
+             --format-output query,target,pident,alnlen,mismatch,gapopen,qstart,qend,tstart,tend,evalue,bits 2> {log}
+         sed -i '1d' {output}
+         """
+
 # Filter results to get top hits
 rule get_top_50_evals:
-     input: rules.mmseqs2_convertalis.output.blast
+     input: 
+         corrected=rules.mmseqs2_convertalis.output.blast,
+         #full=mmseqs2_convertalis_full_blast.output.corrected
      output:
          unfiltered="results/{database}/clustering/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis.tsv",
          tophits="results/{database}/clustering/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis_tophits.tsv"
@@ -36,7 +58,7 @@ rule get_top_50_evals:
      shell:
          """
          touch {output.unfiltered}
-         awk '$3>50 {{print}}' {input} > {output.unfiltered}
+         awk '$3>50 {{print}}' {input.corrected} > {output.unfiltered}
          python workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
          """
 
