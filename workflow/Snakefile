@@ -29,7 +29,7 @@ def get_final_output(wildcards):
         #if config["files"]["16S"][mapping_db]["generate_for_16S"] == "True":
         #    outputs.append(rules.get_16s.output[0].format(database=config['database'], mapping_db=mapping_db))
         
-        outputs.append(rules.run_annotation.output[0].format(database=config['database'], mapping_db=mapping_db)) 
+        #outputs.append(rules.run_annotation.output[0].format(database=config['database'], mapping_db=mapping_db)) 
     return(outputs)
     
 

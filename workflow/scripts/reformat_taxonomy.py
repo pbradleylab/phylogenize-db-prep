@@ -45,11 +45,13 @@ def main(args):
     df=pl.read_csv(args.input, separator="\t", truncate_ragged_lines=True)
     tax=pl.read_csv(args.tax, separator="\t")
     mapping=pl.read_csv(args.mapping, separator="\t", has_header=True, new_columns=["query","other"])
-    print(mapping) 
     out_binary=transform(df, mapping, tax, args)
-    print(out_binary)
-    out_tax=translate(out_binary, tax)
+    
+    del(df); del(mapping)
 
+    print("Transformed the binary")
+    out_tax=translate(out_binary, tax)
+    print("Translated the taxonomy")
     write_tax(out_tax, args)
     out_binary.write_csv(args.output, separator=",")
     

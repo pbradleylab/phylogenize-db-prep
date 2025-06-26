@@ -32,7 +32,7 @@ rule mmseqs2_convertalis_full_blast:
          linker=rules.map_query.output
      params:
          map=rules.map_query.params.outdir
-     output:"results/{database}/clustering/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.8"
+     output:"results/{database}/clustering/mmseqs2/convertalis_full_blast/{target_db}_{mapping_db}_convertlis.8"
      conda: "../envs/clustering.yml"
      log: "logs/{database}/clustering/mmseqs2_convertalis/{target_db}_{mapping_db}.log"
      threads: config["mmseqs2"]["convertalis"]["threads"]
@@ -41,7 +41,8 @@ rule mmseqs2_convertalis_full_blast:
          mmseqs convertalis {input.query}/{wildcards.mapping_db} \
              {input.target}/{wildcards.target_db} \
              {params.map}/{wildcards.mapping_db} {output} --format-mode 4 \
-             --format-output query,target,pident,alnlen,mismatch,gapopen,qstart,qend,tstart,tend,evalue,bits 2> {log}
+             --format-output "query,qlen,target,tlen,evalue,bitscore,alnlen,nident" 2> {log}
+             #--format-output query,target,pident,alnlen,mismatch,gapopen,qstart,qend,tstart,tend,evalue,bits 2> {log}
          sed -i '1d' {output}
          """
 
@@ -49,7 +50,7 @@ rule mmseqs2_convertalis_full_blast:
 rule get_top_50_evals:
      input: 
          corrected=rules.mmseqs2_convertalis.output.blast,
-         #full=mmseqs2_convertalis_full_blast.output.corrected
+         full=rules.mmseqs2_convertalis_full_blast.output
      output:
          unfiltered="results/{database}/clustering/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis.tsv",
          tophits="results/{database}/clustering/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis_tophits.tsv"

@@ -165,7 +165,7 @@ rule combine_link_info:
     output:"results/{database}/annotation/combine_link_info/{mapping_db}/ko_merged.tsv"
     shell:
         """
-        head -n 1 {input[0]} > {output}
+        head -n 1 {input}[0] > {output}
 
         for f in {input}; do
             tail -n +2 "$f" >> {output}
