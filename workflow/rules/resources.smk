@@ -22,3 +22,12 @@ rule anvio_setup_kegg_kofams:
         """
         anvi-setup-kegg-data --kegg-data-dir {output}
         """
+
+rule download_diamond:
+   output:directory("resources/eggnog/")
+   conda:"../envs/annotation.yml"
+   shell:
+       """
+       mkdir -p {output}
+       python workflow/scripts/download_eggnog_data.py -F -y --data_dir {output}
+       """ 

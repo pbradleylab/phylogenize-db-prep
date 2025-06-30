@@ -40,5 +40,9 @@
 	    "run_kegg_annotations":{
                     "threads":16
             }
+    },
+    "emapper":{
+	    "threads":40,
+	    "go_evidence":"non-electronic"
     }
 }

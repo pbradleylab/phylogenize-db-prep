@@ -28,8 +28,9 @@ def get_final_output(wildcards):
         # Not yet implemented
         #if config["files"]["16S"][mapping_db]["generate_for_16S"] == "True":
         #    outputs.append(rules.get_16s.output[0].format(database=config['database'], mapping_db=mapping_db))
-        
-        #outputs.append(rules.run_annotation.output[0].format(database=config['database'], mapping_db=mapping_db)) 
+        #outputs.append(rules.run_annotation.output[0].format(database=config['database'], mapping_db=mapping_db))
+        for target_db in config["target_db"]["paths"].keys():
+            outputs.append(rules.parse_blast.output[0].format(database=config['database'], target_db=target_db, mapping_db=mapping_db)) 
     return(outputs)
     
 

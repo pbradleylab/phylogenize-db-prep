@@ -1,27 +1,24 @@
 {
     "indir":"",
-    "database":"custom_fesnov_correct",
-    "mode":{
-	"annotate_only":"False",
-    	"pangenome":{
-	    "start_with_no_pangenome":"True"
-        }
+    "database":"honeybee-gut-go-test",
+    "annotation":{
+	"annotate_only":"True"
     },
     "files":{
 	"fasta":{
-                "human-gut":"/fs/project/bradley.720/db/uhgp/v2.0.2/protein_catalogue/uhgp-50/uhgp-50.faa"
+		"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.faa"
 	},
 	"mapping":{
-                "human-gut":"/fs/project/bradley.720/db/uhgp/v2.0.2/protein_catalogue/uhgp-50/uhgp-50.tsv"
+                "honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.tsv"
 	},
         "taxonomy":{
-                "human-gut":"/fs/project/bradley.720/db/uhgp//v2.0.2/genomes-all_metadata.tsv"
+                "honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/genomes-all_metadata.tsv"
         },
 	"tree":{
-                "human-gut":"/fs/project/bradley.720/db/uhgp/v2.0.2/phylogenies/bac120_iqtree.nwk"
+                "honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/phylogenies/bac120_iqtree.nwk"
 	},
 	"16S":{
-		"human-gut":{
+		"honeybee-gut":{
                        "generate_for_16S":"False",
                        "fasta":""
  

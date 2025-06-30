@@ -41,8 +41,7 @@ rule mmseqs2_convertalis_full_blast:
          mmseqs convertalis {input.query}/{wildcards.mapping_db} \
              {input.target}/{wildcards.target_db} \
              {params.map}/{wildcards.mapping_db} {output} --format-mode 4 \
-             --format-output "query,qlen,target,tlen,evalue,bitscore,alnlen,nident" 2> {log}
-             #--format-output query,target,pident,alnlen,mismatch,gapopen,qstart,qend,tstart,tend,evalue,bits 2> {log}
+             --format-output "query,qlen,target,tlen,evalue,bits,alnlen,nident" 2> {log}
          sed -i '1d' {output}
          """
 

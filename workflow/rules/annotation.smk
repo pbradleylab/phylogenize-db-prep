@@ -29,7 +29,7 @@ def get_fasta(wildcards):
         chunk=chunks)
     return(out)
 
-def get_annotations(wildcards):
+def get_ko(wildcards):
     chunk_dir=checkpoints.break_fasta_apart.get(
         database=wildcards.database,
         mapping_db=wildcards.mapping_db).output[0]
@@ -41,6 +41,47 @@ def get_annotations(wildcards):
         chunk=chunks)
     return(out)
 
+rule emapper:
+    input:
+        targets=get_targets,
+        diamond=rules.download_diamond.output
+    output:"results/{database}/annotation/emapper/{target_db}/go_annotations.emapper.annotations"
+    params:
+        prefix="go_annotations",
+        go_evidence=config["emapper"]["go_evidence"]
+    conda: "../envs/annotation.yml"
+    threads:config["emapper"]["threads"]
+    shell:
+        """
+        emapper.py -i {input} \
+           -o {params.prefix} \
+           --cpu {threads} \
+           --go_evidence {params.go_evidence} \
+           --data_dir {input.diamond}
+        """
+
+rule make_go_db:
+    input:rules.emapper.output
+    output:"results/{database}/annotation/make_go_db/{target_db}.3"
+    shell:
+        """
+        cut -f1,10 {input} | grep -v '##' | grep -v "-" > {output}
+        """
+
+rule parse_blast:
+    input:
+        db=rules.make_go_db.output,
+        blast=rules.mmseqs2_convertalis_full_blast.output
+    output:"results/{database}/annotation/parse_blast/{target_db}_{mapping_db}.tsv"
+    conda: "../envs/annotation.yml"
+    shell:
+        """
+        python workflow/scripts/parse_blast.py \
+	    {input.blast} \
+	    {input.db} \
+	    {output} \
+	    2
+        """
 
 rule get_fasta_seqs_to_annotate:
     input: 
@@ -186,7 +227,7 @@ rule link_nodes:
         """
 
 rule run_annotation:
-    input:get_annotations
+    input:get_ko
     output:"results/{database}/annotation/run_anntoation/{mapping_db}.done"
     shell:
         """
