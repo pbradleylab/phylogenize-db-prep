@@ -11,3 +11,5 @@ dependencies:
   - pandas
   - pip
   - polars
+  - eggnog-mapper
+  - goatools

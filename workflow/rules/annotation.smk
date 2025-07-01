@@ -53,8 +53,9 @@ rule emapper:
     threads:config["emapper"]["threads"]
     shell:
         """
-        emapper.py -i {input} \
-           -o {params.prefix} \
+        outdir=$(dirname {output})
+        emapper.py -i {input.targets} \
+           -o $outdir/{params.prefix} \
            --cpu {threads} \
            --go_evidence {params.go_evidence} \
            --data_dir {input.diamond}
@@ -81,6 +82,17 @@ rule parse_blast:
 	    {input.db} \
 	    {output} \
 	    2
+        """
+
+rule reannotate_blast_results:
+    input:
+        processed_go=rules.parse_blast.output
+        phenotype=rule.download_go_ontology.output
+    output:"results/{database}/annotation/reannotate_blast_results/{target_db}_{mapping_db}.tsv"
+    conda: "../envs/annotation.yml"
+    shell:
+        """
+        python workflow/scripts/annotate_go_terms.py --obo {input.phenotype} --go_ids {input.processed_go} --out {output} 
         """
 
 rule get_fasta_seqs_to_annotate:

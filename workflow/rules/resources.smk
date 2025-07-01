@@ -30,4 +30,13 @@ rule download_diamond:
        """
        mkdir -p {output}
        python workflow/scripts/download_eggnog_data.py -F -y --data_dir {output}
-       """ 
+       """
+
+rule download_go_ontology:
+    output:"resources/go_ontology/obo/go.obo"
+    conda:"../envs/annotation.yml"
+    shell:
+        """
+        mkdir $(dirname {output})
+        wget -O http://purl.obolibrary.org/obo/go.obo {output}
+        """
