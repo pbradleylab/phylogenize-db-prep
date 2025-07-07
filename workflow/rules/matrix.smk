@@ -1,8 +1,6 @@
 include: "clustering.smk"
 
 
-def get_16s(wildcards):
-    return(config["files"]["16S"][wildcards.mapping_db]["fasta"])
 
 def get_top_hits(wildcards):
     out=expand(rules.get_top_50_evals.output.tophits, mapping_db=wildcards.mapping_db, target_db=config["target_db"]["paths"].keys(), database=wildcards.database)
@@ -90,7 +88,7 @@ rule get_tree:
         """
 
 rule get_16s:
-    input:get_16s
+    input: get_16s
     output: "results/{database}/binary/get_16s/{mapping_db}.faa"
     conda: "../envs/matrix.yml"
     shell:
