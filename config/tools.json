@@ -29,5 +29,20 @@
     },
     "transeq":{
         "convert_missing_to_x":"true"
+    },
+    "create_species_matrix":{
+	    "split_char":"_"
+    },
+    "anvio":{
+	    "contigs_db":{
+		    "threads":1
+	    },
+	    "run_kegg_annotations":{
+                    "threads":16
+            }
+    },
+    "emapper":{
+	    "threads":40,
+	    "go_evidence":"non-electronic"
     }
 }

@@ -1,0 +1,125 @@
+#!/usr/bin/env python
+# Script to make a single 16S file, named appropriately, from a MGnify Genomes database directory
+
+import click
+import os
+import gzip
+import logging
+import polars as pl
+from Bio import Seq, SeqIO, SeqRecord
+from gff3 import Gff3
+
+logger = logging.getLogger(__name__)
+
+@click.option('--input_path', '-i', default=".", help="Path to traverse for GFF files")
+@click.option('--log_file', '-l', default='extract_ssu.log', help="Log file for output")
+@click.option('--metadata_file', '-m', default=None, help="Tab-separated file of genome metadata")
+@click.option('--output_file', '-o', default="ssu_output.fa", help="Output FASTA file")
+# Main script logic
+def run():
+    all_parsed = parse_all_gffs(input_path, log_file)
+    if metadata_file: 
+        # if provided, rename outputs
+        all_parsed = rename_16s(all_parsed, metadata_file)
+    SeqIO.write(iter_nested(all_parsed), output_file, "fasta") 
+
+# Rename 16S sequences given a genome metadata file
+def rename_16s(all_parsed, metadata_file):
+    nz_parsed = [n for n in all_parsed.keys() if len(all_parsed[n]) > 0]
+    metadata = pl.read_csv(metadata_file, separator="\t")
+    md_name_dict = dict(
+            metadata.filter(
+            pl.col("Genome").is_in(nz_parsed)
+        ).with_columns(
+            Lineage=pl.col("Lineage").str.split_exact(";", 6).
+                struct.rename_fields([
+                    "domain",
+                    "phylum",
+                    "class",
+                    "order",
+                    "family",
+                    "genus",
+                    "species"
+                ])
+        ).unnest("Lineage").with_columns(
+            output_name = pl.concat_str(
+                ["genus", "Species_rep"],
+                separator=";;"
+            )
+        ).select(["Genome", "output_name"]).iter_rows()
+    )
+    print(md_name_dict)
+    for genome in nz_parsed:
+        for gene in all_parsed[genome]:
+            seqr = all_parsed[genome][gene]
+            print(gene)
+            print(md_name_dict[genome])
+            seqr.id = ";;".join([gene, md_name_dict[genome]])
+            seqr.name = seqr.id
+            all_parsed[genome][gene] = seqr
+    return(all_parsed)
+
+# SeqIO.write wants an iterable, but our sequences are buried in a nested dict. This one also automatically skips empty entries
+def iter_nested(d):
+    for k in d.keys():
+        if (len(d[k]) == 0):
+            continue
+        for v in d[k].values():
+            yield v
+
+# Traverse a path looking for GFFs and get all 16S/SSU sequences
+def parse_all_gffs(input_path=".", log_file="extract_ssu.log"):
+    logging.basicConfig(filename=log_file)
+    genomes = dict()
+    for r, ds, fs in os.walk(input_path, topdown=False):
+        for f in fs:
+            f_path = os.path.join(r, f)
+            f_name = f.split(".")[0]
+            if f.endswith(".gff.gz"):
+                with gzip.open(f_path, 'rt') as fh:
+                    logging.info(f"GFF file found at {f_path}\n")
+                    genomes[f_name] = get_16s(fh)
+            if f.endswith(".gff"):
+                with open(f_path, 'r') as fh:
+                    logging.info(f"GFF file found at {f_path}\n")
+                    genomes[f_name] = get_16s(fh)
+    return(genomes)
+
+# Parse a single GFF file and return any 16S sequences we find that were generated with barrnap or INFERNAL
+def get_16s(gff_handle):
+    parsed = Gff3(logger=logger)
+    parsed.parse(gff_handle)
+    ks = parsed.features.keys()
+    seqs_16S = dict()
+    for k in ks:
+        for feature in parsed.features[k]:
+            is_16S = False
+            if "source" in feature.keys():
+                if feature["source"].startswith("barrnap"):
+                    if feature["attributes"]["product"] == "16S ribosomal RNA":
+                        is_16S = True
+                if feature["source"].startswith("INFERNAL"):
+                    # check if rfam HMM is for bacterial/archaeal SSU RNA
+                    if feature["attributes"]["rfam"] in ["RF00177", "RF01959"]:
+                        is_16S = True
+            if is_16S:
+                name = feature["attributes"]["ID"]
+                logging.info(f"Found a 16S sequence called {name}")
+                seqs_16S[name] = extract_seq_from_contig(parsed, feature)
+                is_16S = False
+    return(seqs_16S)
+
+# Helper function to get a specific feature from the contigs at the end of the FASTA file
+def extract_seq_from_contig(gff, feature):
+    contig_name = feature["seqid"]
+    contig = Seq.Seq(gff.fasta_embedded[contig_name]["seq"])
+    gseq = contig[(feature["start"]-1):feature["end"]]
+    if feature["strand"] == "-":
+        gseq = gseq.reverse_complement()
+    rec = SeqRecord.SeqRecord(gseq,
+        id=feature["attributes"]["ID"])
+    return(rec)
+    
+# Run the script if appropriate
+if __name__ == '__main__':
+    run()
