@@ -1,7 +1,0 @@
-channels:
-  - anaconda
-  - bioconda
-  - conda-forge
-dependencies:
-  - phylogenize=0.91
-  - r-optparse=1.3.2

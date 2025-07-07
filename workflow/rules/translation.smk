@@ -1,9 +1,9 @@
 def get_transeq_output(wildcards):
     outputLST = []
-    for subsample in pep.subsample_table.subsample.tolist():
-        project = get_subsample_attributes(subsample, "project", pep)
+    #for subsample in pep.subsample_table.subsample.tolist():
+        #project = get_subsample_attributes(subsample, "project", pep)
         # Always run rules on the outside
-        outputLST.append(rules.transeq.output[0].format(database=project, pangenome=subsample))
+        #outputLST.append(rules.transeq.output[0].format(database=project, pangenome=subsample))
     return outputLST
 
 def get_pangenomes(wildcards):
@@ -38,22 +38,17 @@ rule transeq:
         """
         transeq {input} {output} -clean {params.clean} 2> {log}
         """
- 
+        
 # Combine the fasta that are translated to retrieve the unmapped alignments
 # in later steps.
 rule combine_fasta_uniref50:
      input: get_transeq_output
-     output: "results/{database}/combined_uniref/{database}.fa"
+     output: "results/{database}/combined_fasta/{database}.fa"
      conda: "../envs/translation.yml"
      shell:
          """
          cat {input} > {output}
          """
-
-
-
-
-
 
 rule reduce_complexity:
      input: config["indir"]

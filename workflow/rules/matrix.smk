@@ -1,99 +1,56 @@
 include: "clustering.smk"
 
-
-def get_16s(wildcards):
-    return(config["files"]["16S"][wildcards.mapping_db]["fasta"])
-
-def get_top_hits(wildcards):
-    out=expand(rules.get_top_50_evals.output.tophits, mapping_db=wildcards.mapping_db, target_db=config["target_db"]["paths"].keys(), database=wildcards.database)
-    return(out)
-
-def get_all_hits(wildcards):
-    out=expand(rules.mmseqs2_convertalis_full_blast.output, mapping_db=wildcards.mapping_db, target_db=config["target_db"]["paths"].keys(), database=wildcards.database)
-    return(out)
-
 # Combines species with a 90% or greater identity match to the target database, 
 # and the unmapped regions to a list of species specific vectors by their centroid.
 rule combine_species_hits:
     input:
-        clustered=rules.mmseqs2_linclust.output.tsv,
-        tophits=get_top_hits,
-        allhits=get_all_hits
-    output:
-        tophits="results/{database}/binary/combined_species_hits/{mapping_db}_{database}.tsv",
-        allhits="results/{database}/binary/combined_species_hits/{mapping_db}_{database}.all"
-    shell:
-        """
-        echo -e "query\ttarget" > {output.tophits}
-
-        for file in {input.tophits}; do
-            db_info=$(basename $file | sed 's/_convertlis_tophits.tsv//')
-            cut -f1,2 $file | awk -v db="$db_info" '{{print $0"\t"db}}' >> /tmp/{wildcards.mapping_db}.1
-        done
-        
-        cat {input.clustered} | cut -f1  > /tmp/tmp.2
-        cat {input.clustered} | cut -f2  > /tmp/tmp.3
-        paste /tmp/tmp.2 /tmp/tmp.3 >> /tmp/{wildcards.mapping_db}.1 
-
-        # Ensure only one gene hit is used per annotation and in the order of databases selected.
-        awk '!seen[$1]++' /tmp/{wildcards.mapping_db}.1 | cut -f1,2 >> {output.tophits}
-        rm /tmp/{wildcards.mapping_db}.1 /tmp/tmp.2 /tmp/tmp.3
-
-        cat {input.allhits} > {output.allhits}
-        """
-
-# Create the taxonomy file and generate the input for making the binary file needed
-# to pass into R to compress and spearate into a list of binaries per phylum.
-rule get_taxonomy:
-    input: rules.combine_species_hits.output.tophits
+        uhgp50_identity_50=rules.get_top_50_evals_uhgp50.output.tophits,
+        unmapped=rules.mmseqs2_linclust_uhgp50_db.output.tsv,
+        uniref50_identity_50=rules.get_top_50_evals_uniref50.output.tophits
     output: 
-        out=temporary("results/{database}/binary/get_taxonomy/{mapping_db}-binary-temp.csv"),
-        tax="results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv"
+         txt="results/{database}/uniref50/mmseqs2/combined_species_hits/{database}.txt",
+         outdir=directory("results/{database}/uniref50/mmseqs2/combined_species_hits/")
+    conda: "../envs/matrix.yml"
+    log: "logs/{database}/uniref50/mmseqs2/hits_50/mmseqs2_hits_50.log"
+    shell:
+        """
+        cat {input.unmapped} | cut -f1  > /tmp/tmp.1
+        cat {input.unmapped} | cut -f2  > /tmp/tmp.2 
+        paste /tmp/tmp.2 /tmp/tmp.1 > {output.txt}
+        cat {input.uhgp50_identity_50} | cut -f1,2 | sed '1d' >> {output.txt}
+        cat {input.uniref50_identity_50} | cut -f1,2 | sed '1d' >> {output.txt}
+        """
+
+# Combine any database files run in previous iterations together for the final matrix
+rule combine_hits:
+    input: rules.combine_species_hits.output
+    output: 
+        txt="results/{database}/combined_hits/{database}.txt",
+        outdir=directory("results/{database}/combined_hits/")
     params:
-        split_char=config["create_species_matrix"]["split_char"],
-        key="{mapping_db}"
+        search_dir="results/{database}/",
+        name="{database}.txt"
+    shell:
+        """
+        bash workflow/scripts/combine_hits.sh {params.search_dir} {params.name} {output.txt}
+        """
+
+
+# Create a binary matrix of the hits > 50% and those that unmapped 
+# but clustered.
+rule create_species_matrix:
+    input: rules.combine_hits.output.outdir
+    output: 
+        out="results/{database}/final/species_matrix/{database}.txt",
+        dup="results/{database}/final/species_matrix/{database}.dups"
     conda: "../envs/matrix.yml"
     shell:
         """
-        mapping=$(python -c 'import json; print(json.load(open("config/config.json"))["files"]["mapping"]["{params.key}"])')
-        tax=$(python -c 'import json; print(json.load(open("config/config.json"))["files"]["taxonomy"]["{params.key}"])')
-        
-        python workflow/scripts/reformat_taxonomy.py \
-            --input {input} \
-            --tax $tax \
-            --split_char {params.split_char} \
+        #mkdir -p $(dirname {output.out})
+        #touch {output.dup} && chmod 777 {output.dup}
+        python workflow/scripts/combine_species.py \
             --output {output.out} \
-            --tax_output {output.tax} \
-            --mapping $mapping
-        """
-
-rule get_binary:
-    input: 
-        out=rules.get_taxonomy.output.out,
-        tax=rules.get_taxonomy.output.tax
-    output: "results/{database}/binary/get_binary/{mapping_db}-binary.rds"
-    conda: "../envs/matrix.yml"
-    shell:
-        """
-        Rscript workflow/scripts/make_binary.R {input.out} {input.tax} {output} 
-        """
-
-rule get_tree:
-    input: rules.get_taxonomy.output.out
-    output: "results/{database}/binary/get_tree/{mapping_db}-tree.rds"
-    params:
-        tree=lambda wildcards: config["files"]["tree"][wildcards.mapping_db]
-    conda: "../envs/matrix.yml"
-    shell:
-        """
-        Rscript workflow/scripts/make_tree.R {params.tree} {output}
-        """
-
-rule get_16s:
-    input:get_16s
-    output: "results/{database}/binary/get_16s/{mapping_db}.faa"
-    conda: "../envs/matrix.yml"
-    shell:
-        """
-        echo "to be completed"  
+            --dir {input} \
+            --ext ".txt" \
+            --duplicates {output.dup}
         """
