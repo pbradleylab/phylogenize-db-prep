@@ -2,7 +2,7 @@ import pandas as pd
 import argparse
 
 def main(args):
-        frame = pd.read_csv(args.input, sep='\t', header=None, names=["query", "target", "pident"])
+        frame = pd.read_csv(args.input, sep='\t')
         print(frame)
         frame["pident"] = pd.to_numeric(frame["pident"])
         frame = frame.loc[frame.groupby(["query"])["pident"].idxmax()]
