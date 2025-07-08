@@ -38,6 +38,13 @@ rule filter_results:
         fa="results/{database}/16S/initial/{mapping_db}.fna",
         md=lambda wc: config["files"]["taxonomy"][wc.mapping_db]
     output: "results/{database}/16S/filtered/{mapping_db}.fna"
+    conda: "../envs/16S.yml"
     shell: """
         scripts/filter_all_v_all.R -i {input.ava} -f {input.fa} -m {input.md} -o {output}
     """
+
+rule make_16S_tree:
+    input: "results/{database}/16S/filtered/{mapping_db}.fna"
+    output: directory("results/{database}/16S/pasta")
+    conda: "../envs/16S.yml"
+    shell: "run_pasta.py -i {input} -o {output}"
