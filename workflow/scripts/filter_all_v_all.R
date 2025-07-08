@@ -14,8 +14,8 @@ opt_list <- list(
   make_option(c("-o", "--output"), type="character", help="path to output file")
 )
 prs <- OptionParser(option_list = opt_list)
-prs_list <- parse_args(prs)
-p <- prs_list$options
+p <- parse_args(prs)
+
 
 md <- read_tsv(p$metadata) %>%
   separate_wider_delim(Lineage,
@@ -74,9 +74,9 @@ while(length(setdiff(to_exclude, prev_excluded)) > 1) {
   message(paste0("Round ", round, ": ", length(setdiff(to_exclude, prev_excluded)), " sequences excluded"))
 }
 message("Stopping...")
-filtered <- ava_tax %>% filter(!(X1 %in% already_excluded), !(X2 %in% already_excluded))
+filtered <- ava_tax %>% filter(!(X2 %in% prev_excluded), !(X2 %in% prev_excluded))
 
-message(paste0("Removed a total of ", length(already_excluded), " out of ", nrow(ava_tax), " sequences"))
+message(paste0("Removed a total of ", length(prev_excluded), " out of ", nrow(ava_tax), " sequences"))
 
 fa <- read.fasta(p$fasta, seqtype="DNA", as.string=TRUE, forceDNAtolower = FALSE)
 fa <- fa[intersect(filtered$X1, names(fa))]
