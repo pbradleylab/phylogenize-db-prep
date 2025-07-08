@@ -6,6 +6,7 @@ dependencies:
   - click *
   - biopython *
   - r-tidyverse *
+  - r-seqinr *
   - pip *
   - polars *
   - r-optparse *
