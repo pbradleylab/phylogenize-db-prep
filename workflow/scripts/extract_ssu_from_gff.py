@@ -11,12 +11,13 @@ from gff3 import Gff3
 
 logger = logging.getLogger(__name__)
 
+@click.command()
 @click.option('--input_path', '-i', default=".", help="Path to traverse for GFF files")
 @click.option('--log_file', '-l', default='extract_ssu.log', help="Log file for output")
 @click.option('--metadata_file', '-m', default=None, help="Tab-separated file of genome metadata")
 @click.option('--output_file', '-o', default="ssu_output.fa", help="Output FASTA file")
 # Main script logic. Weird comments are to disable complaints from linters that don't know about click options
-def run(): 
+def run(input_path, log_file, metadata_file, output_file): 
     all_parsed = parse_all_gffs(input_path, log_file) # noqa: F821  # pyright: ignore
     if metadata_file: # noqa: F821 # pyright: ignore
         # if provided, rename outputs 
