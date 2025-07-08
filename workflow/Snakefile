@@ -8,6 +8,7 @@ configfile: "config/tools.json"
 pepfile: config["pepfile"]
 include: "rules/annotation.smk"
 include: "rules/pangenome.smk"
+include: "rules/prep_16S.smk"
 
 # Get the list of target databases from config
 TARGET_DBS = list(config["target_db"]["paths"].keys())
