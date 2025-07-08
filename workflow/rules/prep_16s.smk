@@ -24,7 +24,7 @@ rule make_db:
 
 rule all_v_all_16s:
     input:
-        fa="results/{database}/16S/initial/{mapping_db}.faa",
+        fa="results/{database}/16S/initial/{mapping_db}.fna",
         db="results/{database}/16S/initial/{mapping_db}.udb"
     output: "results/{database}/16S/initial/{mapping_db}_all_v_all.txt"
     conda: "../envs/16S.yml"
@@ -35,9 +35,9 @@ rule all_v_all_16s:
 rule filter_results:
     input:
         ava="results/{database}/16S/initial/{mapping_db}_all_v_all.txt",
-        fa="results/{database}/16S/initial/{mapping_db}.faa",
+        fa="results/{database}/16S/initial/{mapping_db}.fna",
         md=lambda wc: config["files"]["taxonomy"][wc.mapping_db]
-    output: "results/{database}/16S/filtered/{mapping_db}.faa"
+    output: "results/{database}/16S/filtered/{mapping_db}.fna"
     shell: """
         scripts/filter_all_v_all.R -i {input.ava} -f {input.fa} -m {input.md} -o {output}
     """
