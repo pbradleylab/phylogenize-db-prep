@@ -5,7 +5,7 @@ min_version("6.0") # Enforces minimum conda version ~
 
 configfile: "../config/config.json"
 configfile: "../config/tools.json"
-pepfile: config["pepfile"]
+pepfile: "../" + config["pepfile"]
 include: "rules/annotation.smk"
 include: "rules/pangenome.smk"
 include: "rules/prep_16s.smk"
