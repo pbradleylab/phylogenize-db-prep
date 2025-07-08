@@ -45,6 +45,6 @@ rule filter_results:
 
 rule make_16S_tree:
     input: "results/{database}/16S/filtered/{mapping_db}.fna"
-    output: directory("results/{database}/16S/pasta")
+    output: directory("results/{database}/16S/{mapping_db}-pasta/")
     conda: "../envs/16S.yml"
     shell: "run_pasta.py -i {input} -o {output}"
