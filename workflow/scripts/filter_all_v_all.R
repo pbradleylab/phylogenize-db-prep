@@ -1,5 +1,6 @@
 #!/usr/bin/env Rscript
 library(optparse)
+library(seqinr)
 library(readr)
 library(dplyr)
 library(purrr)
@@ -33,5 +34,42 @@ all_v_all <- read_tsv(p$input, col_names=FALSE) %>%
 ava_tax <- left_join(all_v_all, tax, by=c("q_species_id"="Species_rep")) %>%
   left_join(., tax, by=c("d_species_id"="Species_rep"), suffix=c("_q", "_d"))
 
-# in progress -
-# still need to adapt from notes
+very_unlikely <- ava_tax %>%
+  group_by(X1) %>%
+  count(agree=ifelse(family_d==family_q, 'Y', 'N')) %>%
+  pivot_wider(values_from=n, names_from=agree, values_fill=0) %>%
+  mutate(T = Y + N) %>% filter((Y / T) < 0.5, T > 2) %>%
+  pull(X1)
+
+pare_by <- function(res, exclude=NULL, lvl="family", frac=0.9, min_n=2) {
+  level_d <- paste0(lvl, "_d")
+  level_q <- paste0(lvl, "_q")
+  res2 <- res %>%
+    filter(!(X1 %in% exclude)) %>%
+    filter(!(X2 %in% exclude)) %>%
+    group_by(X1) %>%
+    count(agree=ifelse(
+      !!(rlang::sym(level_d)) == !!(rlang::sym(level_q)),
+      'Y',
+      'N')
+    ) %>%
+    pivot_wider(values_from=n, names_from=agree, values_fill=0)
+  new_exc <- res2 %>%
+    mutate(T = Y + N) %>%
+    filter((Y / T) <= frac, T > min_n) %>%
+    pull(X1)
+  c(exclude, new_exc)
+}
+
+to_exclude <- pare_by(ava_tax, lvl="family", frac=0.8, min_n=2)
+prev_excluded <- c()
+while(length(setdiff(to_exclude, prev_excluded) > 1)) {
+  prev_excluded <- to_exclude
+  to_exclude <- pare_by(ava_tax, exclude=prev_excluded, lvl="family", frac=0.8, min_n=5)
+  to_exclude <- pare_by(ava_tax, exclude=to_exclude, lvl="genus", frac=0.5, min_n=5)
+}
+filtered <- ava_tax %>% filter(!(X1 %in% already_excluded), !(X2 %in% already_excluded))
+
+fa <- read.fasta(p$fasta, seqtype="DNA", as.string=TRUE, forceDNAtolower = FALSE)
+fa <- fa[intersect(filtered$X1, names(fa))]
+write.fasta(fa, names(fa), file.out = p$output)
