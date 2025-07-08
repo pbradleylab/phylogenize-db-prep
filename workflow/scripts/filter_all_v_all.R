@@ -4,6 +4,7 @@ library(readr)
 library(dplyr)
 library(purrr)
 library(tibble)
+library(tidyr)
 
 opt_list <- list(
   make_option(c("-i", "--input"), type="character", help="path to all-versus-all results (in blast6out format)"),
@@ -26,7 +27,7 @@ tax <- select(md, Species_rep, domain:species) %>% distinct()
 
 all_v_all <- read_tsv(p$input, col_names=FALSE) %>%
   mutate(q_species_id = gsub("(.*);;(.*);;(.*)", "\\3", X1)) %>%
-  mutate(d_species_id = gsub("(.*);;(.*);;(.*)", "\\3", X2) %>%
+  mutate(d_species_id = gsub("(.*);;(.*);;(.*)", "\\3", X2)) %>%
   relocate(q_species_id, d_species_id)
 
 ava_tax <- left_join(all_v_all, tax, by=c("q_species_id"="Species_rep")) %>%

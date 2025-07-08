@@ -15,13 +15,13 @@ logger = logging.getLogger(__name__)
 @click.option('--log_file', '-l', default='extract_ssu.log', help="Log file for output")
 @click.option('--metadata_file', '-m', default=None, help="Tab-separated file of genome metadata")
 @click.option('--output_file', '-o', default="ssu_output.fa", help="Output FASTA file")
-# Main script logic
-def run():
-    all_parsed = parse_all_gffs(input_path, log_file)
-    if metadata_file: 
-        # if provided, rename outputs
-        all_parsed = rename_16s(all_parsed, metadata_file)
-    SeqIO.write(iter_nested(all_parsed), output_file, "fasta") 
+# Main script logic. Weird comments are to disable complaints from linters that don't know about click options
+def run(): 
+    all_parsed = parse_all_gffs(input_path, log_file) # noqa: F821  # pyright: ignore
+    if metadata_file: # noqa: F821 # pyright: ignore
+        # if provided, rename outputs 
+        all_parsed = rename_16s(all_parsed, metadata_file) # noqa: F821 # pyright: ignore
+    SeqIO.write(iter_nested(all_parsed), output_file, "fasta")  # noqa: F821 # pyright: ignore
 
 # Rename 16S sequences given a genome metadata file
 def rename_16s(all_parsed, metadata_file):

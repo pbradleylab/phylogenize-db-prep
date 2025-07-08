@@ -1,0 +1,18 @@
+name: 16S
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - click
+  - biopython
+  - r-readr
+  - r-dplyr
+  - d-purrr
+  - pip
+  - polars
+  - r-tibble
+  - r-tidyr
+  - r-optparse
+  - vsearch
+  - pip:
+      - gff3
