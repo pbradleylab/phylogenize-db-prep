@@ -13,8 +13,9 @@ opt_list <- list(
   make_option(c("-m", "--metadata"), type="character", help="path to TSV containing genome metadata"),
   make_option(c("-o", "--output"), type="character", help="path to output file")
 )
-p <- OptionParser(option_list = opt_list)
-parse_args(p)
+prs <- OptionParser(option_list = opt_list)
+prs_list <- parse_args(prs)
+p <- prs_list$options
 
 md <- read_tsv(p$metadata) %>%
   separate_wider_delim(Lineage,
