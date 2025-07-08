@@ -63,12 +63,19 @@ pare_by <- function(res, exclude=NULL, lvl="family", frac=0.9, min_n=2) {
 
 to_exclude <- pare_by(ava_tax, lvl="family", frac=0.8, min_n=2)
 prev_excluded <- c()
-while(length(setdiff(to_exclude, prev_excluded) > 1)) {
+round <- 0
+message(paste0("Round ", round, ": ", length(to_exclude), " sequences excluded"))
+while(length(setdiff(to_exclude, prev_excluded)) > 1) {
+  round <- round + 1
   prev_excluded <- to_exclude
   to_exclude <- pare_by(ava_tax, exclude=prev_excluded, lvl="family", frac=0.8, min_n=5)
   to_exclude <- pare_by(ava_tax, exclude=to_exclude, lvl="genus", frac=0.5, min_n=5)
+  message(paste0("Round ", round, ": ", length(setdiff(to_exclude, prev_excluded)), " sequences excluded"))
 }
+message("Stopping...")
 filtered <- ava_tax %>% filter(!(X1 %in% already_excluded), !(X2 %in% already_excluded))
+
+message(paste0("Removed a total of ", length(already_excluded), " out of ", nrow(ava_tax), " sequences"))
 
 fa <- read.fasta(p$fasta, seqtype="DNA", as.string=TRUE, forceDNAtolower = FALSE)
 fa <- fa[intersect(filtered$X1, names(fa))]
