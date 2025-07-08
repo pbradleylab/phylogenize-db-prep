@@ -1,0 +1,16 @@
+name: 16S
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - click *
+  - biopython *
+  - r-tidyverse *
+  - pip *
+  - polars *
+  - r-optparse *
+  - vsearch *
+  - snakemake *
+  - pip
+  - pip:
+      - gff3
