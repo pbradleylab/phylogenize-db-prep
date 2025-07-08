@@ -3,7 +3,7 @@ rule get_16s:
     input:
       fa=lambda wc: config["files"]["16S"][wc.mapping_db]["fasta_dir"],
       md=lambda wc: config["files"]["taxonomy"][wc.mapping_db]
-    output: "results/{database}/16S/initial/{mapping_db}.faa"
+    output: "results/{database}/16S/initial/{mapping_db}.fna"
     conda: "../envs/16S.yml"
     shell:
         """
@@ -14,7 +14,7 @@ rule get_16s:
         """
 
 rule make_db:
-    input: "results/{database}/16S/initial/{mapping_db}.faa"
+    input: "results/{database}/16S/initial/{mapping_db}.fna"
     output: "results/{database}/16S/initial/{mapping_db}.udb"
     conda: "../envs/16S.yml"
     shell: """
