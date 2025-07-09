@@ -32,15 +32,24 @@ rule all_v_all_16s:
         "vsearch --usearch_global {input.fa} --db {input.db} --id 0.95 " + \
         "--maxaccepts=20 --blast6out {output}"
 
-rule filter_results:
+rule tax_filter_results:
     input:
         ava="results/{database}/16S/initial/{mapping_db}_all_v_all.txt",
         fa="results/{database}/16S/initial/{mapping_db}.fna",
         md=lambda wc: config["files"]["taxonomy"][wc.mapping_db]
-    output: "results/{database}/16S/filtered/{mapping_db}.fna"
+    output: "results/{database}/16S/tax_filtered/{mapping_db}.fna"
     conda: "../envs/16S.yml"
     shell: """
         scripts/filter_all_v_all.R -i {input.ava} -f {input.fa} -m {input.md} -o {output}
+    """
+
+# Filter by length (sequence must be at least half the upper 95th percentile to get counted)
+rule len_filter_results:
+    input: "results/{database}/16S/tax_filtered/{mapping_db}.fna"
+    output: "results/{database}/16S/len_filtered/{mapping_db}.fna"
+    conda: "../envs/16S.yml"
+    shell: """
+        scripts/fasta_length_filter.R -i {input} -o {output} -f 0.5 -u 0.95
     """
 
 rule make_16S_tree:
