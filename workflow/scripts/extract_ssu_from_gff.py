@@ -89,7 +89,9 @@ def parse_all_gffs(input_path=".", log_file="extract_ssu.log"):
 # Parse a single GFF file and return any 16S sequences we find that were generated with barrnap or INFERNAL
 def get_16s(gff_handle):
     parsed = Gff3(logger=logger)
+    logging.disable(logging.CRITICAL) # temporarily turn off logging since this is very verbose
     parsed.parse(gff_handle)
+    logging.disable(logging.NOTSET)
     ks = parsed.features.keys()
     seqs_16S = dict()
     for k in ks:

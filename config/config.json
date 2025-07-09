@@ -1,27 +1,34 @@
 {
     "indir":"",
-    "database":"honeybee-gut-go-test",
+    "database":"honeybee-human-gut-go-test",
     "annotation":{
 	"annotate_only":"True"
     },
     "files":{
 		"fasta":{
-			"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.faa"
+			"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.faa",
+			"human-gut":"/fs/project/bradley.720/db/uhgg2/protein_catalogue/uhgp-50.faa"
 		},
 		"mapping":{
-					"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.tsv"
+			"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.tsv",
+			"human-gut":"/fs/project/bradley.720/db/uhgg2/protein_catalogue/uhgp-50.tsv"
 		},
 		"taxonomy":{
-					"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/genomes-all_metadata.tsv"
+			"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/genomes-all_metadata.tsv",
+			"human-gut":"/fs/project/bradley.720/db/uhgg2/genomes-all_metadata.tsv"
 		},
 		"tree":{
-					"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/phylogenies/bac120_iqtree.nwk"
+			"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/phylogenies/bac120_iqtree.nwk",
+			"human-gut":"/fs/project/bradley.720/db/uhgg2/phylogenies/bac120_iqtree.nwk"
 		},
 		"16S":{
 			"honeybee-gut":{
-						"generate_for_16S":"False",
-						"fasta_dir":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/all_genomes/"
-	
+					"generate_for_16S":"False",
+					"fasta_dir":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/all_genomes/"
+			},
+			"human-gut":{
+				"generate_for_16S":"False",
+				"fasta_dir":"/fs/project/bradley.720/db/uhgg2/all_genomes/"
 			}
 		}
     },
