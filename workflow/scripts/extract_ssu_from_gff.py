@@ -3,6 +3,7 @@
 
 import click
 import os
+import re
 import gzip
 import logging
 import polars as pl
