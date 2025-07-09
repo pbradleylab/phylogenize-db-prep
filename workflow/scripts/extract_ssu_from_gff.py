@@ -7,6 +7,8 @@ import re
 import gzip
 import logging
 import polars as pl
+from multiprocessing import Pool
+from functools import reduce
 from Bio import Seq, SeqIO, SeqRecord
 from gff3 import Gff3
 
@@ -17,10 +19,11 @@ logger = logging.getLogger(__name__)
 @click.option('--log_file', '-l', default='extract_ssu.log', help="Log file for output")
 @click.option('--metadata_file', '-m', default=None, help="Tab-separated file of genome metadata")
 @click.option('--output_file', '-o', default="ssu_output.fa", help="Output FASTA file")
+@click.option('--n_processes', '-n', default=1, help="Launch this many processes at a time")
 # Main script logic. Weird comments are to disable complaints from linters that don't know about click options
-def run(input_path, log_file, metadata_file, output_file):
+def run(input_path, log_file, metadata_file, output_file, n_processes):
     logging.basicConfig(filename=log_file, level=logging.INFO) # noqa: F821  # pyright: ignore
-    all_parsed = parse_all_gffs(input_path) 
+    all_parsed = parse_all_gffs(input_path, n_processes=n_processes)  # noqa: F821  # pyright: ignore
     if metadata_file: # noqa: F821 # pyright: ignore
         # if provided, rename outputs 
         all_parsed = rename_16s(all_parsed, metadata_file) # noqa: F821 # pyright: ignore
@@ -72,23 +75,32 @@ def iter_nested(d):
         for v in d[k].values():
             yield v
 
-# Traverse a path looking for GFFs and get all 16S/SSU sequences
-def parse_all_gffs(input_path="."):
+# get all 16S/SSU sequences from traversing a path - multithreaded
+def parse_all_gffs(input_path=".", n_processes=4):
     genomes = dict()
-    for r, ds, fs in os.walk(input_path, topdown=False):
-        for f in fs:
-            f_path = os.path.join(r, f)
-            if f.endswith(".gff.gz"):
-                f_name = re.sub(".gff.gz$", "", f)
-                with gzip.open(f_path, 'rt') as fh:
-                    logging.info(f"GFF file found at {f_path}\n")
-                    genomes[f_name] = get_16s(fh)
-            if f.endswith(".gff"):
-                f_name = re.sub(".gff$", "", f)
-                with open(f_path, 'r') as fh:
-                    logging.info(f"GFF file found at {f_path}\n")
-                    genomes[f_name] = get_16s(fh)
+    with Pool(n_processes) as p:
+        subdicts = p.map(read_and_parse_gff,
+            os.walk(input_path, topdown=False))
+    genomes = reduce(lambda a, b: a | b, subdicts, {})
     return(genomes)
+
+# Look for and parse gffs in a given directory
+def read_and_parse_gff(x):
+    (r, ds, fs) = x
+    subdict = {}
+    for f in fs:
+        f_path = os.path.join(r, f)
+        if f.endswith(".gff.gz"):
+            f_name = re.sub(".gff.gz$", "", f)
+            with gzip.open(f_path, 'rt') as fh:
+                logging.info(f"GFF file found at {f_path}\n")
+                subdict[f_name] = get_16s(fh)
+        if f.endswith(".gff"):
+            f_name = re.sub(".gff$", "", f)
+            with open(f_path, 'r') as fh:
+                logging.info(f"GFF file found at {f_path}\n")
+                subdict[f_name] = get_16s(fh)
+    return(subdict)
 
 # Parse a single GFF file and return any 16S sequences we find that were generated with barrnap or INFERNAL
 def get_16s(gff_handle):
