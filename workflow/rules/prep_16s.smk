@@ -10,7 +10,8 @@ rule get_16s:
             scripts/extract_ssu_from_gff.py -i {input.fa} \
                -l "results/{wildcards.database}/ssu.log" \
                -m {input.md} \
-               -o {output}
+               -o {output} \
+               -n {config["maxthreads"]}
         """
 
 rule make_db:
@@ -19,7 +20,8 @@ rule make_db:
     conda: "../envs/16S.yml"
     shell: """
             vsearch --makeudb_usearch {input} --output \
-               results/{wildcards.database}/16S/initial/{wildcards.mapping_db}.udb 
+               results/{wildcards.database}/16S/initial/{wildcards.mapping_db}.udb \
+               --threads {config["maxthreads"]}
            """
 
 rule all_v_all_16s:
@@ -30,7 +32,7 @@ rule all_v_all_16s:
     conda: "../envs/16S.yml"
     shell:
         "vsearch --usearch_global {input.fa} --db {input.db} --id 0.95 " + \
-        "--maxaccepts=20 --blast6out {output}"
+        "--maxaccepts=20 --blast6out {output} --threads {config[\"maxthreads\"}"
 
 rule tax_filter_results:
     input:
@@ -53,7 +55,7 @@ rule len_filter_results:
     """
 
 rule make_16S_tree:
-    input: "results/{database}/16S/filtered/{mapping_db}.fna"
+    input: "results/{database}/16S/len_filtered/{mapping_db}.fna"
     output: directory("results/{database}/16S/{mapping_db}-pasta/")
     conda: "../envs/16S.yml"
     shell: "run_pasta.py -i {input} -o {output}"
