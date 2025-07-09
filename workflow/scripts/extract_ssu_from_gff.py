@@ -17,8 +17,9 @@ logger = logging.getLogger(__name__)
 @click.option('--metadata_file', '-m', default=None, help="Tab-separated file of genome metadata")
 @click.option('--output_file', '-o', default="ssu_output.fa", help="Output FASTA file")
 # Main script logic. Weird comments are to disable complaints from linters that don't know about click options
-def run(input_path, log_file, metadata_file, output_file): 
-    all_parsed = parse_all_gffs(input_path, log_file) # noqa: F821  # pyright: ignore
+def run(input_path, log_file, metadata_file, output_file):
+    logging.basicConfig(filename=log_file, level=logging.INFO) # noqa: F821  # pyright: ignore
+    all_parsed = parse_all_gffs(input_path) 
     if metadata_file: # noqa: F821 # pyright: ignore
         # if provided, rename outputs 
         all_parsed = rename_16s(all_parsed, metadata_file) # noqa: F821 # pyright: ignore
@@ -49,15 +50,17 @@ def rename_16s(all_parsed, metadata_file):
             )
         ).select(["Genome", "output_name"]).iter_rows()
     )
-    print(md_name_dict)
     for genome in nz_parsed:
         for gene in all_parsed[genome]:
             seqr = all_parsed[genome][gene]
-            print(gene)
-            print(md_name_dict[genome])
-            seqr.id = ";;".join([gene, md_name_dict[genome]])
-            seqr.name = seqr.id
-            all_parsed[genome][gene] = seqr
+            # Be robust to genome being missing for some reason
+            if genome in md_name_dict.keys():
+                seqr.id = ";;".join([gene, md_name_dict[genome]])
+                seqr.name = seqr.id
+                all_parsed[genome][gene] = seqr
+            else:
+                logging.warning(f"Genome {genome} not found in metadata")
+                seqr.id = ";;".join([gene, "unknown", genome])
     return(all_parsed)
 
 # SeqIO.write wants an iterable, but our sequences are buried in a nested dict. This one also automatically skips empty entries
@@ -69,18 +72,18 @@ def iter_nested(d):
             yield v
 
 # Traverse a path looking for GFFs and get all 16S/SSU sequences
-def parse_all_gffs(input_path=".", log_file="extract_ssu.log"):
-    logging.basicConfig(filename=log_file)
+def parse_all_gffs(input_path="."):
     genomes = dict()
     for r, ds, fs in os.walk(input_path, topdown=False):
         for f in fs:
             f_path = os.path.join(r, f)
-            f_name = f.split(".")[0]
             if f.endswith(".gff.gz"):
+                f_name = re.sub(".gff.gz$", "", f)
                 with gzip.open(f_path, 'rt') as fh:
                     logging.info(f"GFF file found at {f_path}\n")
                     genomes[f_name] = get_16s(fh)
             if f.endswith(".gff"):
+                f_name = re.sub(".gff$", "", f)
                 with open(f_path, 'r') as fh:
                     logging.info(f"GFF file found at {f_path}\n")
                     genomes[f_name] = get_16s(fh)
@@ -99,7 +102,7 @@ def get_16s(gff_handle):
             is_16S = False
             if "source" in feature.keys():
                 if feature["source"].startswith("barrnap"):
-                    if feature["attributes"]["product"] == "16S ribosomal RNA":
+                    if feature["attributes"]["product"].startswith("16S ribosomal RNA"):
                         is_16S = True
                 if feature["source"].startswith("INFERNAL"):
                     # check if rfam HMM is for bacterial/archaeal SSU RNA
