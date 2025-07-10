@@ -5,6 +5,8 @@ library(seqinr)
 library(purrr)
 library(tibble)
 library(dplyr)
+library(readr)
+library(stringr)
 
 opt_list <- list(
   make_option(c("-i", "--input"), type="character", help="path to FASTA file to rename"),
@@ -36,7 +38,7 @@ sid_vec <- enframe(species_ids, name="fullname", value=p$genome_column) %>%
 # map IDs
 new_species_ids <- map_chr(names(fa), ~ {
   sp <- str_split_1(string=.x, pattern=";;")
-  if (!(.x %in% names(sid_vec))) { warn(paste0("Not found: ", .x))}
+  if (!(.x %in% names(sid_vec))) { warning(paste0("Not found: ", .x))}
   paste(c(sp[1:2], sid_vec[.x]), collapse=';;')
 })
 
