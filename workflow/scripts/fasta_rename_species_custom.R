@@ -34,6 +34,7 @@ sid_vec <- enframe(species_ids, name="fullname", value=p$genome_column) %>%
   left_join(md_t) %>%
   select(fullname, all_of(p$id_column)) %>%
   deframe()
+print(head(sid_vec))
 
 # map IDs
 new_species_ids <- map_chr(names(fa), ~ {
@@ -43,4 +44,4 @@ new_species_ids <- map_chr(names(fa), ~ {
 })
 
 # output
-write.fasta(fa, names(fa), file.out = p$output)
+write.fasta(fa, new_species_ids, file.out = p$output)
