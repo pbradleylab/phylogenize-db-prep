@@ -62,4 +62,5 @@ rule make_16S_tree:
     input: "results/{database}/16S/len_filtered/{mapping_db}.fna"
     output: directory("results/{database}/16S/{mapping_db}-pasta/")
     conda: "../envs/16S.yml"
-    shell: "run_pasta.py -i {input} -o {output}"
+    threads: 16
+    shell: "run_pasta.py -i {input} -o {output} --num-cpus={threads}"
