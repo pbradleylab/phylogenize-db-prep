@@ -45,6 +45,5 @@
 		"fesnov":"/fs/project/bradley.720/db/FESNov/250421/FESNov_fams.rep_seq.faa"
 	}
     },
-    "pepfile":"config/pepconfig.yml",
-    "maxthreads":16
+    "pepfile":"config/pepconfig.yml"
 }

@@ -1,27 +1,28 @@
-
 rule get_16s:
     input:
       fa=lambda wc: config["files"]["16S"][wc.mapping_db]["fasta_dir"],
       md=lambda wc: config["files"]["taxonomy"][wc.mapping_db]
     output: "results/{database}/16S/initial/{mapping_db}.fna"
     conda: "../envs/16S.yml"
+    threads: 16
     shell:
         """
             scripts/extract_ssu_from_gff.py -i {input.fa} \
                -l "results/{wildcards.database}/ssu.log" \
                -m {input.md} \
                -o {output} \
-               -n {config["maxthreads"]}
+               -n {threads}
         """
 
 rule make_db:
     input: "results/{database}/16S/initial/{mapping_db}.fna"
     output: "results/{database}/16S/initial/{mapping_db}.udb"
     conda: "../envs/16S.yml"
+    threads: 16
     shell: """
             vsearch --makeudb_usearch {input} --output \
                results/{wildcards.database}/16S/initial/{wildcards.mapping_db}.udb \
-               --threads {config["maxthreads"]}
+               --threads {threads}
            """
 
 rule all_v_all_16s:
@@ -30,9 +31,12 @@ rule all_v_all_16s:
         db="results/{database}/16S/initial/{mapping_db}.udb"
     output: "results/{database}/16S/initial/{mapping_db}_all_v_all.txt"
     conda: "../envs/16S.yml"
+    threads: 16
     shell:
-        "vsearch --usearch_global {input.fa} --db {input.db} --id 0.95 " + \
-        "--maxaccepts=20 --blast6out {output} --threads {config[\"maxthreads\"}"
+        """
+            vsearch --usearch_global {input.fa} --db {input.db} --id 0.95 \
+            --maxaccepts=20 --blast6out {output} --threads {threads}
+        """
 
 rule tax_filter_results:
     input:
