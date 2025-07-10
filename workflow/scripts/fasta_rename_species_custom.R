@@ -11,8 +11,8 @@ opt_list <- list(
   make_option(c("-m", "--metadata"), type="character", help="path to metadata file"),
   make_option(c("-g", "--genome_column"), type="character", default="MGnify_accession", help="which column in metadata to match on"),
   make_option(c("-d", "--id_column"), type="character", default="species_id", help="which column to grab new IDs from"),
-  make_option(c("-r1", "--regex_match"), type="character", default="MGYG-HGUT-", help="regex to apply to genome-column to make it match fasta file"),
-  make_option(c("-r2", "--regex_sub"), type="character", default="MGYG0000", help="replacement text for regex"),
+  make_option(c("-r", "--regex_match"), type="character", default="MGYG-HGUT-", help="regex to apply to genome-column to make it match fasta file"),
+  make_option(c("-R", "--regex_sub"), type="character", default="MGYG0000", help="replacement text for regex"),
   make_option(c("-o", "--output"), type="character", help="path to output file")
 )
 prs <- OptionParser(option_list = opt_list)
