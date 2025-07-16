@@ -64,3 +64,18 @@ rule make_16S_tree:
     conda: "../envs/16S.yml"
     threads: 16
     shell: "run_pasta.py -i {input} -o {output} --num-cpus={threads}"
+
+rule fix_16S_tree_file:
+    input: "results/{database}/16S/{mapping_db}-pasta/pastajob.tre"
+    output: "results/{database}/16S/{mapping_db}-pasta/{mapping_db}-unpruned-tree.phy"
+    shell: "scripts/fix_tree_file.py -i {input} -o {output}"
+
+rule fix_aln_file:
+    input: "results/{database}/16S/{mapping_db}-pasta/pastajob.marker001.{mapping_db}.fna.aln"
+    output: "results/{database}/16S/{mapping_db}-fixed/{mapping_db}-alignment.aln"
+    shell: "sed 's/;;/____/g' {input} > {output}"
+
+rule prune_16S_tree:
+    input: "results/{database}/16S/{mapping_db}-pasta/{mapping_db}-unpruned-tree.phy"
+    output: "results/{database}/16S/{mapping_db}-fixed/{mapping_db}-tree.phy"
+    shell: "scripts/filter_inconsistent_tips.R -i {input} -o {output} -d '____'"
