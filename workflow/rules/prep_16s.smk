@@ -54,7 +54,7 @@ rule len_filter_results:
     input: "results/{database}/16S/tax_filtered/{mapping_db}.fna"
     output: "results/{database}/16S/len_filtered/{mapping_db}.fna"
     conda: "../envs/16S.yml"
-    # was scripts/fasta_length_filter.R -i {input} -o {output} -f 0.5 -u 0.95
+# was scripts/fasta_length_filter.R -i {input} -o {output} -f 0.5 -u 0.95
     shell: """
         scripts/fasta_length_filter.R -i {input} -o {output} -l 500
     """
@@ -90,3 +90,12 @@ rule prune_16S_tree:
     input: "results/{database}/16S/{mapping_db}-pasta/{mapping_db}-unpruned-tree.phy"
     output: "results/{database}/16S/{mapping_db}-fixed/{mapping_db}-tree.phy"
     shell: "scripts/filter_inconsistent_tips.R -i {input} -o {output} -d '____'"
+
+# outputs in {mapping_db}-fixed should now be good to go for phylogenetic placement!
+rule all_16S:
+    input:
+        aln="results/{database}/16S/{mapping_db}-fixed/{mapping_db}-alignment.aln",
+        tree="results/{database}/16S/{mapping_db}-fixed/{mapping_db}-tree.phy",
+    output: "results/{database}/16S/.complete"
+    shell: "touch {output}"
+
