@@ -49,17 +49,28 @@ rule tax_filter_results:
         scripts/filter_all_v_all.R -i {input.ava} -f {input.fa} -m {input.md} -o {output}
     """
 
-# Filter by length (sequence must be at least half the upper 95th percentile to get counted)
+# Filter by length (sequence must be at least 500bp to be kept)
 rule len_filter_results:
     input: "results/{database}/16S/tax_filtered/{mapping_db}.fna"
     output: "results/{database}/16S/len_filtered/{mapping_db}.fna"
     conda: "../envs/16S.yml"
+    # was scripts/fasta_length_filter.R -i {input} -o {output} -f 0.5 -u 0.95
     shell: """
-        scripts/fasta_length_filter.R -i {input} -o {output} -f 0.5 -u 0.95
+        scripts/fasta_length_filter.R -i {input} -o {output} -l 500
+    """
+
+rule vsearch_cluster:
+    input: "results/{database}/16S/len_filtered/{mapping_db}.fna"
+    output: "results/{database}/16S/vclust/{mapping_db}.fna"
+    conda: "../envs/16S.yml"
+    threads: 16
+    shell: """
+         vsearch --cluster_fast {input} --threads {threads} \
+                 --id 1.0 --centroids {output}
     """
 
 rule make_16S_tree:
-    input: "results/{database}/16S/len_filtered/{mapping_db}.fna"
+    input: "results/{database}/16S/vclust/{mapping_db}.fna"
     output: directory("results/{database}/16S/{mapping_db}-pasta/")
     conda: "../envs/16S.yml"
     threads: 16
