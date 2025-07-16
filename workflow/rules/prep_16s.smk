@@ -96,6 +96,6 @@ rule all_16S:
     input:
         aln="results/{database}/16S/{mapping_db}-fixed/{mapping_db}-alignment.aln",
         tree="results/{database}/16S/{mapping_db}-fixed/{mapping_db}-tree.phy",
-    output: "results/{database}/16S/.complete"
+    output: "results/{database}/16S/.{mapping_db}.complete"
     shell: "touch {output}"
 
