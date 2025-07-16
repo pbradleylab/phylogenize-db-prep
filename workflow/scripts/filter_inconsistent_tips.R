@@ -36,8 +36,10 @@ all_means <- tips_by_species %>%
     z
   }))
 message("Calculating mean distances to different genera (via sampling)...")
+n_genera <- length(unique(tips_by_genus$genus))
+genus_sample_size <- min(n_genera/2, 100)
 bg_dist <- Reduce(c, map(.progress=TRUE, 1:100, \(.) {
-  smp <- sample(tips_by_genus$genus, 100)
+  smp <- sample(tips_by_genus$genus, genus_sample_size)
   smp_tips <- map_chr(filter(tips_by_genus, genus %in% smp)$data, ~ { 
     .x[sample(nrow(.x), 1), "tip"] %>% pull(tip)
   })
