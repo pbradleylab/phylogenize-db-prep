@@ -83,19 +83,28 @@ rule fix_16S_tree_file:
 
 rule fix_aln_file:
     input: "results/{database}/16S/{mapping_db}-pasta/pastajob.marker001.{mapping_db}.fna.aln"
-    output: "results/{database}/16S/{mapping_db}-fixed/{mapping_db}-alignment.aln"
+    output: "results/{database}/16S/{mapping_db}-final/{mapping_db}-alignment.aln"
     shell: "sed 's/;;/____/g' {input} > {output}"
 
+# APPLES-2 and App-SpaM both need trees with branch lengths scaled appropriately for distances
+rule rescale_16S_tree:
+    input:
+        phy="results/{database}/16S/{mapping_db}-pasta/{mapping_db}-unpruned-tree.phy",
+        aln="results/{database}/16S/{mapping_db}-final/{mapping_db}-alignment.aln"   
+    output: "results/{database}/16S/{mapping_db}-pasta/{mapping_db}-rescaled-tree.phy"
+    shell: "FastTree -nosupport -nt -nome -noml -intree {input.phy} < {input.aln} > {output}"
+
 rule prune_16S_tree:
-    input: "results/{database}/16S/{mapping_db}-pasta/{mapping_db}-unpruned-tree.phy"
-    output: "results/{database}/16S/{mapping_db}-fixed/{mapping_db}-tree.phy"
+    input: "results/{database}/16S/{mapping_db}-pasta/{mapping_db}-rescaled-tree.phy"
+    output: "results/{database}/16S/{mapping_db}-final/{mapping_db}-tree.phy"
     shell: "scripts/filter_inconsistent_tips.R -i {input} -o {output} -d '____'"
+
 
 # outputs in {mapping_db}-fixed should now be good to go for phylogenetic placement!
 rule all_16S:
     input:
-        aln="results/{database}/16S/{mapping_db}-fixed/{mapping_db}-alignment.aln",
-        tree="results/{database}/16S/{mapping_db}-fixed/{mapping_db}-tree.phy",
+        aln="results/{database}/16S/{mapping_db}-final/{mapping_db}-alignment.aln",
+        tree="results/{database}/16S/{mapping_db}-final/{mapping_db}-tree.phy",
     output: "results/{database}/16S/.{mapping_db}.complete"
     shell: "touch {output}"
 
