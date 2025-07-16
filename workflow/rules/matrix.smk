@@ -41,7 +41,7 @@ rule combine_species_hits:
         """
 
 # Create the taxonomy file and generate the input for making the binary file needed
-# to pass into R to compress and spearate into a list of binaries per phylum.
+# to pass into R to compress and separate into a list of binaries per phylum.
 rule get_taxonomy:
     input: rules.combine_species_hits.output.tophits
     output: 
@@ -77,14 +77,14 @@ rule get_binary:
         """
 
 rule get_tree:
-    input: rules.get_taxonomy.output.out
+    input: "results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv"
     output: "results/{database}/binary/get_tree/{mapping_db}-tree.rds"
     params:
         tree=lambda wildcards: config["files"]["tree"][wildcards.mapping_db]
     conda: "../envs/matrix.yml"
     shell:
         """
-        Rscript workflow/scripts/make_tree.R {params.tree} {output}
+        Rscript workflow/scripts/make_tree.R -i {params.tree} -t {input} -o {output}
         """
 
 rule get_16s:

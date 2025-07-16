@@ -32,6 +32,7 @@ md_t <- md
 md_t[[ p$genome_column]] <- gsub(p$regex_match, p$regex_sub, md_t[[p$genome_column]])
 if (p$debug) print(head(md_t))
 
+
 # make mapping
 sid_vec <- enframe(species_ids, name="fullname", value=p$genome_column) %>%
   left_join(md_t) %>%

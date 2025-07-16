@@ -2,7 +2,7 @@ library(Matrix)
 
 # Convert targets to row indices and cluster to column indices
 create_sparse_matrix <- function(df) {
-  sparse_matrix <- sparseMatrix(
+  sparse_matrix <- Matrix::sparseMatrix(
     i = as.numeric(factor(df$target)),
     j = as.numeric(factor(df$cluster)),
     x = TRUE,
