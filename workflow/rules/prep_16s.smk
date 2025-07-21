@@ -71,14 +71,17 @@ rule vsearch_cluster:
 
 rule make_16S_tree:
     input: "results/{database}/16S/vclust/{mapping_db}.fna"
-    output: directory("results/{database}/16S/{mapping_db}-pasta/")
+    output:
+        d=directory("results/{database}/16S/{mapping_db}-pasta/"),
+        t="results/{database}/16S/{mapping_db}-pasta/pastajob.tre",
+        a="results/{database}/16S/{mapping_db}-pasta/pastajob.marker001.{mapping_db}.fna.aln"
     conda: "../envs/16S.yml"
     threads: 16
-    shell: "run_pasta.py -i {input} -o {output} --num-cpus={threads}"
+    shell: "run_pasta.py -i {input} -o {output.d} --num-cpus={threads}"
 
 rule fix_16S_tree_file:
     input: "results/{database}/16S/{mapping_db}-pasta/pastajob.tre"
-    output: "results/{database}/16S/{mapping_db}-pasta/{mapping_db}-unpruned-tree.phy"
+    output: "results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-unpruned-tree.phy"
     shell: "scripts/fix_tree_file.py -i {input} -o {output}"
 
 rule fix_aln_file:
@@ -89,13 +92,13 @@ rule fix_aln_file:
 # APPLES-2 and App-SpaM both need trees with branch lengths scaled appropriately for distances
 rule rescale_16S_tree:
     input:
-        phy="results/{database}/16S/{mapping_db}-pasta/{mapping_db}-unpruned-tree.phy",
+        phy="results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-unpruned-tree.phy",
         aln="results/{database}/16S/{mapping_db}-final/{mapping_db}-alignment.aln"   
-    output: "results/{database}/16S/{mapping_db}-pasta/{mapping_db}-rescaled-tree.phy"
+    output: "results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-rescaled-tree.phy"
     shell: "FastTree -nosupport -nt -nome -noml -intree {input.phy} < {input.aln} > {output}"
 
 rule prune_16S_tree:
-    input: "results/{database}/16S/{mapping_db}-pasta/{mapping_db}-rescaled-tree.phy"
+    input: "results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-rescaled-tree.phy"
     output: "results/{database}/16S/{mapping_db}-final/{mapping_db}-tree.phy"
     shell: "scripts/filter_inconsistent_tips.R -i {input} -o {output} -d '____'"
 

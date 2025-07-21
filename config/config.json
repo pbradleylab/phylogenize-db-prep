@@ -15,11 +15,13 @@
 		},
 		"taxonomy":{
 			"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/genomes-all_metadata.tsv",
-			"human-gut":"/fs/project/bradley.720/db/uhgg2/genomes-all_metadata.tsv"
+			"human-gut":"/fs/project/bradley.720/db/uhgg2/genomes-all_metadata.tsv",
+			"gtdb":"/home/bradley.720/projects/phylogenize-db-prep/workflow/gtdb/gtdb_genomes_all_md.tsv"
 		},
 		"tree":{
 			"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/phylogenies/bac120_iqtree.nwk",
-			"human-gut":"/fs/project/bradley.720/db/uhgg2/phylogenies/bac120_iqtree.nwk"
+			"human-gut":"/fs/project/bradley.720/db/uhgg2/phylogenies/bac120_iqtree.nwk",
+			"gtdb":"/fs/project/bradley.720/db/gtdb/v226.0/bac120_r226.tree"
 		},
 		"16S":{
 			"honeybee-gut":{
@@ -29,6 +31,10 @@
 			"human-gut":{
 				"generate_for_16S":"False",
 				"fasta_dir":"/fs/project/bradley.720/db/uhgg2/all_genomes/"
+			},
+			"gtdb": {
+				"generate_for_16S":"False",
+				"fasta_dir":"/home/bradley.720/projects/phylogenize-db-prep/workflow/gtdb/"
 			}
 		}
     },
