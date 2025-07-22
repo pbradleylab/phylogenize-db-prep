@@ -3,7 +3,7 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
-  - mmseqs2=14.7e284
-  - pandas=1.5.3
-  - numpy=1.25.0
-  - dask
+  - polars=1.27.1
+  - r-base=4.4.3
+  - r-matrix
+  - r-ape

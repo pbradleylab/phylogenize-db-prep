@@ -1,16 +1,40 @@
-""" Create an RNASeq pipeline up to the start of defrential analysis.
+""" Create databases for phylogenize pipeline. 
 """
 from snakemake.utils import min_version
 min_version("6.0") # Enforces minimum conda version ~
 
-configfile: "config/config.json"
-configfile: "config/tools.json"
-#pepfile: config["pepfile"]
+configfile: "../config/config.json"
+configfile: "../config/tools.json"
+#pepfile: "../" + config["pepfile"]
+#include: "rules/annotation.smk"
+#include: "rules/pangenome.smk"
+include: "rules/prep_16s.smk"
 
-include: "rules/matrix.smk"
+# Get the list of target databases from config
+TARGET_DBS = list(config["target_db"]["paths"].keys())
+
+# Check which mode we should run the workflow in. Currently the workflow runs in various
+# modes being starting from a pangenome set or starting from a database that is already 
+# clustered and is ready for annotation and to generate the binaries needed to run in
+# Phylogenize.
+def get_final_output(wildcards):
+    outputs = []
+    for mapping_db in config["files"]["fasta"].keys():
+        #if config["mode"]["pangenome"]["start_with_no_pangenome"] == True:
+        #    outputs.append(rules.make_pangenome_contigs_db.output[0].format(database=config['database']))
+
+        outputs.append(rules.get_binary.output[0].format(database=config['database'], mapping_db=mapping_db))
+        outputs.append(rules.get_tree.output[0].format(database=config['database'], mapping_db=mapping_db))
+        
+        # Not yet implemented
+        #if config["files"]["16S"][mapping_db]["generate_for_16S"] == "True":
+        #    outputs.append(rules.get_16s.output[0].format(database=config['database'], mapping_db=mapping_db))
+        #outputs.append(rules.run_annotation.output[0].format(database=config['database'], mapping_db=mapping_db))
+        for target_db in config["target_db"]["paths"].keys():
+            outputs.append(rules.reannotate_blast_results.output[0].format(database=config['database'], target_db=target_db, mapping_db=mapping_db)) 
+    return(outputs)
+    
 
 
 rule all:
-    input: rules.create_species_matrix.output[0].format(database=config["database"])
-
-#expand(rules.create_species_matrix.output[0], database=pep.sample_table.project.unique().tolist())
+    input:get_final_output
