@@ -21,7 +21,7 @@ option_list <- list(
 arg_parser <- OptionParser(option_list=option_list)
 args <- parse_args(arg_parser)
 
-render.report(
+phylogenize::render.report(
     output_file=args$output_file,
     out_dir=args$outdir,
     db=args$db,
@@ -34,6 +34,6 @@ render.report(
     input_format=args$input_format,
     which_envir=args$which_envir,
     sample_column=args$sample_column,
-    vsearch_bin=args$vsearch_bin
+    vsearch_bin=args$vsearch_bin,
     ncl=args$ncl
 )

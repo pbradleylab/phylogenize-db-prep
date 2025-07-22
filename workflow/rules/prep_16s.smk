@@ -1,0 +1,113 @@
+rule get_16s:
+    input:
+      fa=lambda wc: config["files"]["16S"][wc.mapping_db]["fasta_dir"],
+      md=lambda wc: config["files"]["taxonomy"][wc.mapping_db]
+    output: "results/{database}/16S/initial/{mapping_db}.fna"
+    conda: "../envs/16S.yml"
+    threads: 16
+    shell:
+        """
+            scripts/extract_ssu_from_gff.py -i {input.fa} \
+               -l "results/{wildcards.database}/ssu.log" \
+               -m {input.md} \
+               -o {output} \
+               -n {threads}
+        """
+
+rule make_db:
+    input: "results/{database}/16S/initial/{mapping_db}.fna"
+    output: "results/{database}/16S/initial/{mapping_db}.udb"
+    conda: "../envs/16S.yml"
+    threads: 16
+    shell: """
+            vsearch --makeudb_usearch {input} --output \
+               results/{wildcards.database}/16S/initial/{wildcards.mapping_db}.udb \
+               --threads {threads}
+           """
+
+rule all_v_all_16s:
+    input:
+        fa="results/{database}/16S/initial/{mapping_db}.fna",
+        db="results/{database}/16S/initial/{mapping_db}.udb"
+    output: "results/{database}/16S/initial/{mapping_db}_all_v_all.txt"
+    conda: "../envs/16S.yml"
+    threads: 16
+    shell:
+        """
+            vsearch --usearch_global {input.fa} --db {input.db} --id 0.95 \
+            --maxaccepts=20 --blast6out {output} --threads {threads}
+        """
+
+rule tax_filter_results:
+    input:
+        ava="results/{database}/16S/initial/{mapping_db}_all_v_all.txt",
+        fa="results/{database}/16S/initial/{mapping_db}.fna",
+        md=lambda wc: config["files"]["taxonomy"][wc.mapping_db]
+    output: "results/{database}/16S/tax_filtered/{mapping_db}.fna"
+    conda: "../envs/16S.yml"
+    shell: """
+        scripts/filter_all_v_all.R -i {input.ava} -f {input.fa} -m {input.md} -o {output}
+    """
+
+# Filter by length (sequence must be at least 500bp to be kept)
+rule len_filter_results:
+    input: "results/{database}/16S/tax_filtered/{mapping_db}.fna"
+    output: "results/{database}/16S/len_filtered/{mapping_db}.fna"
+    conda: "../envs/16S.yml"
+# was scripts/fasta_length_filter.R -i {input} -o {output} -f 0.5 -u 0.95
+    shell: """
+        scripts/fasta_length_filter.R -i {input} -o {output} -l 500
+    """
+
+rule vsearch_cluster:
+    input: "results/{database}/16S/len_filtered/{mapping_db}.fna"
+    output: "results/{database}/16S/vclust/{mapping_db}.fna"
+    conda: "../envs/16S.yml"
+    threads: 16
+    shell: """
+         vsearch --cluster_fast {input} --threads {threads} \
+                 --id 1.0 --centroids {output}
+    """
+
+rule make_16S_tree:
+    input: "results/{database}/16S/vclust/{mapping_db}.fna"
+    output:
+        d=directory("results/{database}/16S/{mapping_db}-pasta/"),
+        t="results/{database}/16S/{mapping_db}-pasta/pastajob.tre",
+        a="results/{database}/16S/{mapping_db}-pasta/pastajob.marker001.{mapping_db}.fna.aln"
+    conda: "../envs/16S.yml"
+    threads: 16
+    shell: "run_pasta.py -i {input} -o {output.d} --num-cpus={threads}"
+
+rule fix_16S_tree_file:
+    input: "results/{database}/16S/{mapping_db}-pasta/pastajob.tre"
+    output: "results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-unpruned-tree.phy"
+    shell: "scripts/fix_tree_file.py -i {input} -o {output}"
+
+rule fix_aln_file:
+    input: "results/{database}/16S/{mapping_db}-pasta/pastajob.marker001.{mapping_db}.fna.aln"
+    output: "results/{database}/16S/{mapping_db}-final/{mapping_db}-alignment.aln"
+    shell: "sed 's/;;/____/g' {input} > {output}"
+
+# APPLES-2 and App-SpaM both need trees with branch lengths scaled appropriately for distances
+rule rescale_16S_tree:
+    input:
+        phy="results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-unpruned-tree.phy",
+        aln="results/{database}/16S/{mapping_db}-final/{mapping_db}-alignment.aln"   
+    output: "results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-rescaled-tree.phy"
+    shell: "FastTree -nosupport -nt -nome -noml -intree {input.phy} < {input.aln} > {output}"
+
+rule prune_16S_tree:
+    input: "results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-rescaled-tree.phy"
+    output: "results/{database}/16S/{mapping_db}-final/{mapping_db}-tree.phy"
+    shell: "scripts/filter_inconsistent_tips.R -i {input} -o {output} -d '____'"
+
+
+# outputs in {mapping_db}-fixed should now be good to go for phylogenetic placement!
+rule all_16S:
+    input:
+        aln="results/{database}/16S/{mapping_db}-final/{mapping_db}-alignment.aln",
+        tree="results/{database}/16S/{mapping_db}-final/{mapping_db}-tree.phy",
+    output: "results/{database}/16S/.{mapping_db}.complete"
+    shell: "touch {output}"
+

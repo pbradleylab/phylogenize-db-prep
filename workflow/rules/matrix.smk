@@ -1,8 +1,6 @@
 include: "clustering.smk"
 
 
-def get_16s(wildcards):
-    return(config["files"]["16S"][wildcards.mapping_db]["fasta"])
 
 def get_top_hits(wildcards):
     out=expand(rules.get_top_50_evals.output.tophits, mapping_db=wildcards.mapping_db, target_db=config["target_db"]["paths"].keys(), database=wildcards.database)
@@ -43,7 +41,7 @@ rule combine_species_hits:
         """
 
 # Create the taxonomy file and generate the input for making the binary file needed
-# to pass into R to compress and spearate into a list of binaries per phylum.
+# to pass into R to compress and separate into a list of binaries per phylum.
 rule get_taxonomy:
     input: rules.combine_species_hits.output.tophits
     output: 
@@ -79,18 +77,18 @@ rule get_binary:
         """
 
 rule get_tree:
-    input: rules.get_taxonomy.output.out
+    input: "results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv"
     output: "results/{database}/binary/get_tree/{mapping_db}-tree.rds"
     params:
         tree=lambda wildcards: config["files"]["tree"][wildcards.mapping_db]
     conda: "../envs/matrix.yml"
     shell:
         """
-        Rscript workflow/scripts/make_tree.R {params.tree} {output}
+        Rscript workflow/scripts/make_tree.R -i {params.tree} -t {input} -o {output}
         """
 
 rule get_16s:
-    input:get_16s
+    input: get_16s
     output: "results/{database}/binary/get_16s/{mapping_db}.faa"
     conda: "../envs/matrix.yml"
     shell:

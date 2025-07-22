@@ -1,10 +1,30 @@
-library(Matrix)
+#!/usr/bin/env Rscript
 library(ape)
+library(castor)
+library(optparse)
+library(readr)
 
+opt_list <- list(
+  make_option(c("-i", "--input"), type="character", help="path to initial tree file"),
+  make_option(c("-t", "--taxonomy"), type="character", help="path to taxonomy .csv table"),
+  make_option(c("-o", "--output"), type="character", help="path to output rds file")
+)
+prs <- OptionParser(option_list = opt_list)
+p <- parse_args(prs)
 
-# Get command line arguments
-args <- commandArgs(trailingOnly = TRUE)
+tree <- ape::read.tree(p$input)
+tax <- readr::read_csv(p$taxonomy)
 
-tree <- args[1]; output <- args[2]
-tree <- ape::read.tree(tree)
-saveRDS(tree, output)
+red_tree <- castor::date_tree_red(castor::root_at_midpoint(tree))
+if (!red_tree$success) { stop("Error: couldn't date tree using RED") }
+
+phyla <- dplyr::select(tax, "phylum") %>% dplyr::distinct() %>% dplyr::pull("phylum")
+red_subtrees <- purrr::map(phyla, ~ {
+  species <- dplyr::filter(tax, phylum %in% .x) %>%
+    dplyr::pull("cluster")
+  ape::keep.tip(red_tree$tree,
+    intersect(red_tree$tree$tip.label, species))
+}) %>%
+  setNames(phyla) %>%
+  (\(.) .[which(!(purrr::map_lgl(., is.null)))])
+saveRDS(red_subtrees, p$output)
