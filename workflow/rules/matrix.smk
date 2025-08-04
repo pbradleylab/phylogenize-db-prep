@@ -81,12 +81,12 @@ rule get_tree:
         tax="results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv",
         tree=lambda wildcards: config["files"]["tree"][wildcards.mapping_db]
     output: "results/{database}/binary/get_tree/{mapping_db}-tree.rds"
-    params:
-        alttree=lambda wildcards: config["files"]["alttree"][wildcards.mapping_db]["altree"],
-        altname=lambda wildcards: config["files"]["alttree"][wildcards.mapping_db]["name"]
     conda: "../envs/matrix.yml"
     shell:
         """
-        Rscript workflow/scripts/make_tree.R -i {params.tree} -a {params.alttree} -n {params.altname} -t {input} -o {output}
+        name=$(python -c 'import json; print(json.load(open("config/config.json"))["files"]["mapping"]["alttree"]["{params.key}"]["name"])')
+        alttree=$(python -c 'import json; print(json.load(open("config/config.json"))["files"]["alttree"]["{params.key}"]["tree"])')
+
+        Rscript workflow/scripts/make_tree.R -i {params.tree} -a $alttree -n $name -t {input} -o {output}
         """
 

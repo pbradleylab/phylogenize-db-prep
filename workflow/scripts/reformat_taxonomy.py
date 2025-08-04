@@ -19,11 +19,11 @@ def transform(df, mapping, tax, args):
     tax.columns=["query","cluster"]
 
     tmp=tmp.join(tax, on="query", how="left")
-   
-    out=tmp.with_columns([
-        pl.col("other").str.split(args.split_char).list.get(0).alias("other")])
     
-    return(out)
+    tmp=tmp.with_columns(pl.col("query").alias("cluster"))
+   
+    print(tmp)
+    return(tmp)
 
 def translate(df, tax):
     tax=tax.with_columns([
@@ -32,9 +32,18 @@ def translate(df, tax):
     tax=tax.with_columns([
         pl.col("Lineage").list.get(i).alias(name)
         for i, name in enumerate(["domain", "phylum", "class", "order", "family", "genus", "species"])]).drop("Lineage")
+    df=df.drop(["other"])
+
+    merged = df.join(tax["query", "domain", "phylum", "class", "order", "family", "genus", "species"], on="query", how="left")
     
-    merged = df.join(tax["query", "domain", "phylum", "class", "order", "family", "genus", "species"], on="query", how="left").drop(["other","target","query"])
+    print(any(
+    df.select([
+        pl.col(col).cast(str).eq("AMXMAG_0088").any()
+        for col in df.columns
+    ]).row(0)
+    ))
     
+    sys.exit(0)
     return(merged)
 
 def write_tax(tax, args):
@@ -46,7 +55,16 @@ def main(args):
     tax=pl.read_csv(args.tax, separator="\t")
     mapping=pl.read_csv(args.mapping, separator="\t", has_header=True, new_columns=["query","other"])
     out_binary=transform(df, mapping, tax, args)
-    
+     
+
+    print(any(
+    out_binary.select([
+        pl.col(col).cast(str).eq("AMXMAG_0088").any()
+        for col in df.columns
+    ]).row(0)
+    ))
+
+    sys.exit(0) 
     del(df); del(mapping)
 
     print("Transformed the binary")
