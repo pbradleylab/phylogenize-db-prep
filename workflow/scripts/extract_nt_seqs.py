@@ -25,8 +25,11 @@ logger = logging.getLogger(__name__)
 # Main script logic. Weird comments are to disable complaints from linters that don't know about click options
 def run(input_path, species, metadata_file, prot_catalog_file, log_file, output_file, n_processes):
     logging.basicConfig(filename=log_file, level=logging.INFO) # noqa: F821  # pyright: ignore
+    logging.info(f"Determining which sequences to match...\n")
     seqs = get_seqs_to_match_from_tsv(prot_catalog_file, metadata_file, species)
+    logging.info(f"Finding/parsing GFFs...\n")
     all_parsed = parse_all_gffs(seqs, input_path, n_processes=n_processes)  # noqa: F821  # pyright: ignore
+    logging.info(f"Finding/parsing GFFs...\n")
     SeqIO.write(iter_nested(all_parsed), output_file, "fasta")  # noqa: F821 # pyright: ignore
 
 # SeqIO.write wants an iterable, but our sequences are buried in a nested dict. This one also automatically skips empty entries
@@ -39,20 +42,22 @@ def iter_nested(d):
 
 # test me
 def get_seqs_to_match_from_tsv(cluster_tsv, metadata_tsv, species_id):
-    species_list = set()
+    genome_list = set()
     with open(metadata_tsv, 'r') as fh:
         reader = csv.DictReader(fh, delimiter='\t')
         for row in reader:
             if row["Species_rep"] == species_id:
-                species_list.add(row["Genome"])
+                genome_list.add(row["Genome"])
+                logging.info(f"  - Genome {row["Genome"]} found...\n")
         
     seq_list = set()
     with open(cluster_tsv, 'r') as fh:
         for line in fh:
             row = line[:-1].split("\t")
             src = row[1].split("_")[0]
-            if src in species_list:
+            if src in genome_list:
                 seq_list.add(row[1])
+    logging.info(f"  - Found {len(seq_list)} sequences from all {len(genome_list)} genomes.\n")
     
     return(seq_list)
 
