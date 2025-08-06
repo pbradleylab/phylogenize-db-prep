@@ -49,7 +49,8 @@ def get_seqs_to_match_from_tsv(cluster_tsv, metadata_tsv, species_id):
             if row["Species_rep"] == species_id:
                 genome_list.add(row["Genome"])
                 logging.info(f"  - Genome {row["Genome"]} found...\n")
-        
+    
+    logging.info(f"  - Processing cluster .tsv file...\n")
     seq_list = set()
     with open(cluster_tsv, 'r') as fh:
         for line in fh:
