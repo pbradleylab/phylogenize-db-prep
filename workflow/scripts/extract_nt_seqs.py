@@ -66,9 +66,10 @@ def get_seqs_to_match_from_tsv(cluster_tsv, metadata_tsv, species_id):
 # get all matching sequences from traversing a path - multithreaded
 def parse_all_gffs(seq_list, input_path=".", n_processes=4):
     genomes = dict()
+    def rppg(x):
+        read_and_parse_gff(x, seq_list)
     with Pool(n_processes) as p:
-        subdicts = p.map(lambda x: read_and_parse_gff(x, seq_list),
-            os.walk(input_path, topdown=False))
+        subdicts = p.map(rppg, os.walk(input_path, topdown=False))
     genomes = reduce(lambda a, b: a | b, subdicts, {})
     return(genomes)
 
