@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 def run(input_path, species, log_file, output_file, n_processes):
     logging.basicConfig(filename=log_file, level=logging.INFO) # noqa: F821  # pyright: ignore
     logging.info("Finding/parsing GFFs...\n")
-    all_parsed = parse_all_gffs(seqs, input_path, n_processes=n_processes)  # noqa: F821  # pyright: ignore
+    all_parsed = parse_all_gffs(input_path, n_processes=n_processes)  # noqa: F821  # pyright: ignore
     logging.info("Writing FASTA output...\n")
     SeqIO.write(iter_nested(all_parsed), output_file, "fasta")  # noqa: F821 # pyright: ignore
 
@@ -38,11 +38,10 @@ def iter_nested(d):
 
 
 # get all matching sequences from traversing a path - multithreaded
-def parse_all_gffs(seq_list, input_path=".", n_processes=4):
+def parse_all_gffs(input_path=".", n_processes=4):
     genomes = dict()
     with Pool(n_processes) as p:
-        subdicts = p.map(
-            partial(read_and_parse_gff, seq_list=seq_list),
+        subdicts = p.map(read_and_parse_gff,
             os.walk(input_path, topdown=False))
     genomes = reduce(lambda a, b: a | b, subdicts, {})
     return(genomes)
@@ -79,19 +78,24 @@ def extract_seqs_in_list(gff_handle):
             if "type" in feature.keys():
                 if feature["type"] == "CDS":
                     name = feature["attributes"]["ID"]
+                    if "product" in feature["attributes"].keys():
+                        desc = feature["attributes"]["product"]
+                    else:
+                        desc = "No description"
                     logging.info(f"Found a CDS that matched called {name}")
-                    seqs[name] = extract_seq_from_contig(parsed, feature)
+                    seqs[name] = extract_seq_from_contig(parsed, feature, desc)
     return(seqs)
 
 # Helper function to get a specific feature from the contigs at the end of the FASTA file
-def extract_seq_from_contig(gff, feature):
+def extract_seq_from_contig(gff, feature, desc="No description"):
     contig_name = feature["seqid"]
     contig = Seq.Seq(gff.fasta_embedded[contig_name]["seq"])
     gseq = contig[(feature["start"]-1):feature["end"]]
     if feature["strand"] == "-":
         gseq = gseq.reverse_complement()
     rec = SeqRecord.SeqRecord(gseq,
-        id=feature["attributes"]["ID"])
+        id=feature["attributes"]["ID"],
+        description=desc)
     return(rec)
     
 # Run the script if appropriate
