@@ -9,6 +9,7 @@ import logging
 import csv
 from multiprocessing import Pool
 from functools import reduce
+from functools import partial
 from Bio import Seq, SeqIO, SeqRecord
 from gff3 import Gff3
 
@@ -69,7 +70,9 @@ def parse_all_gffs(seq_list, input_path=".", n_processes=4):
     def rppg(x):
         read_and_parse_gff(x, seq_list)
     with Pool(n_processes) as p:
-        subdicts = p.map(rppg, os.walk(input_path, topdown=False))
+        subdicts = p.map(
+            partial(read_and_parse_gff(x, seq_list=seq_list)),
+            os.walk(input_path, topdown=False))
     genomes = reduce(lambda a, b: a | b, subdicts, {})
     return(genomes)
 
