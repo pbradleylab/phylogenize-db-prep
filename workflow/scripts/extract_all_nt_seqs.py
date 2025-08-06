@@ -6,7 +6,6 @@ import os
 import re
 import gzip
 import logging
-import csv
 from multiprocessing import Pool
 from functools import reduce
 from functools import partial
