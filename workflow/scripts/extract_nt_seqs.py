@@ -19,10 +19,11 @@ logger = logging.getLogger(__name__)
 @click.option("--species", '-s', help="Species representative name (e.g. MGYG000000010)")
 @click.option('--metadata_file', '-m', help="Tab-separated file of genome metadata")
 @click.option('--prot_catalog_file', '-p', help="Tab-separated file of cluster assignments for protein catalog (e.g. uhgp-50.tsv)")
+@click.option('--log_file', '-l', default="/dev/null", help="Optional log file")
 @click.option('--output_file', '-o', default="ssu_output.fa", help="Output FASTA file")
 @click.option('--n_processes', '-n', default=1, help="Launch this many processes at a time")
 # Main script logic. Weird comments are to disable complaints from linters that don't know about click options
-def run(input_path, species, metadata_file, prot_catalog_file, output_file, n_processes):
+def run(input_path, species, metadata_file, prot_catalog_file, log_file, output_file, n_processes):
     logging.basicConfig(filename=log_file, level=logging.INFO) # noqa: F821  # pyright: ignore
     seqs = get_seqs_to_match_from_tsv(prot_catalog_file, metadata_file, species)
     all_parsed = parse_all_gffs(seqs, input_path, n_processes=n_processes)  # noqa: F821  # pyright: ignore
@@ -40,7 +41,7 @@ def iter_nested(d):
 def get_seqs_to_match_from_tsv(cluster_tsv, metadata_tsv, species_id):
     species_list = set()
     with open(metadata_tsv, 'r') as fh:
-        reader = csv.DictReader(fh)
+        reader = csv.DictReader(fh, delimiter='\t')
         for row in reader:
             if row["Species_rep"] == species_id:
                 species_list.add(row["Genome"])

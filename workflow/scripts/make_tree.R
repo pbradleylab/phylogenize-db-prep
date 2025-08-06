@@ -3,6 +3,7 @@ library(ape)
 library(castor)
 library(optparse)
 library(readr)
+library(magrittr)
 
 opt_list <- list(
   make_option(c("-i", "--input"), type="character", help="path to initial tree file"),
