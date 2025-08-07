@@ -8,6 +8,7 @@ library(optparse)
 opt_list <- list(
   make_option(c("-i", "--input"), type="character", help="path to protein family clustering .tsv file"),
   make_option(c("-g", "--genome_metadata"), type="character", help="path to genome metadata .tsv file"),
+  make_option(c("-c", "--combined_hits"), type="character", default=NA, help="path to combined_species_hits .tsv file"),
   make_option(c("-r", "--output_rds"), default="output.rds", type="character", help="path to output .rds file containing sparse per-phylum matrices"),
   make_option(c("-t", "--output_tsv"), default="output.tsv", type="character", help="path to output .tsv file containing all data")
 )
@@ -26,6 +27,18 @@ p <- parse_args(prs)
 prot_cat <- duckplyr::read_csv_duckdb(p$input, options = list(delim="\t", header=FALSE))
 genome_md <- duckplyr::read_csv_duckdb(p$genome_metadata,  options = list(delim="\t"))
 prot_cat_split <- prot_cat |> mutate(Genome = gsub("([^_]+)_.*", "\\1", column1))
+if (!is.na(p$combined_hits)) {
+  combined_hits <- duckplyr::read_csv_duckdb(p$combined_hits, options = list(delim="\t"))
+  prot_cat_split <- prot_cat_split |>
+    left_join(combined_hits, by=c("column0"="query"))
+  missing <- prot_cat_split |> select(column0, target) |> filter(is.na(target))
+  missing_gfs <- nrow(collect(missing))
+  if (nrow(collect(missing) > 1)) {
+    warning(paste0("Warning: ", length(missing_gfs), " gene families were not mapped"))
+    print(missing)
+  }
+  prot_cat_split <- select(prot_cat_split, column0=target, Genome, column1)
+}
 genome_tax <- genome_md %>% select(Genome, Lineage, cluster=Species_rep) %>% separate_wider_delim(Lineage, names=c("domain","phylum","class","order","family","genus","species"), delim=";")
 
 # use duckplyr to compute frac pangenomes
