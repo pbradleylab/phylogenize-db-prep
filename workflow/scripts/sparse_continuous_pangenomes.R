@@ -14,7 +14,8 @@ opt_list <- list(
   make_option(c("-r", "--output_rds"), default="output.rds", type="character", help="path to output .rds file containing sparse per-phylum matrices"),
   make_option(c("-C", "--output_csv"), default="output.csv", type="character", help="path to output .tsv file containing all data"),
   make_option(c("-m", "--memory"), default=16, type="numeric",
-    help="max memory (in Gb) for DuckDB")
+    help="max memory (in Gb) for DuckDB"),
+  make_option(c("-s", "--speedy"), default=FALSE, type="logical", help="Make sparse matrices in memory (uses more memory but MUCH faster)")
 )
 
 prs <- OptionParser(option_list = opt_list)
@@ -66,6 +67,13 @@ fractional_pangenomes <- full_join(count_genomes_per_species_per_family,
 
 message(paste0("Writing out fractional pangenomes to ", p$output_csv))
 duckplyr::compute_csv(fractional_pangenomes, p$output_csv)
+
+if (p$speedy) {
+  message("Re-reading fractional pangenomes...")
+  rm(fractional_pangenomes)
+  gc()
+  fractional_pangenomes <- read_csv(p$output_csv)
+}
 
 # compute per-phylum sparse matrices
 phyla <- fractional_pangenomes %>% select(phylum) %>% distinct() %>% pull(phylum)
