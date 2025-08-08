@@ -14,11 +14,12 @@ prs <- OptionParser(option_list = opt_list)
 p <- parse_args(prs)
 
 mm <- read_tsv(p$input, col_names=FALSE, col_types="cdddccddddddc")
-wide <- group_by(X6) %>%
+wide <- mm %>%
+  group_by(X6) %>%
   slice_max(X12) %>%
   separate_wider_delim(X1, delim='_', cols_remove=FALSE, names=c("genome","gene")) %>%
   select(X6,  genome, X1) %>%
   pivot_wider(names_from=genome, values_from=X1, values_fn=\(x) paste(x, collapse=';'), values_fill="") %>%
   mutate(`Non-unique Gene name` = "", Annotation = "") %>% # dummy columns to match old .csv
   relocate(Gene, `Non-unique Gene name`, Annotation)
-write_tsv(wide, p$output)
+write_csv(wide, p$output)
