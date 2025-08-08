@@ -12,7 +12,7 @@ opt_list <- list(
   make_option(c("-g", "--genome_metadata"), type="character", help="path to genome metadata .tsv file"),
   make_option(c("-c", "--combined_hits"), type="character", default=NA, help="path to combined_species_hits .tsv file"),
   make_option(c("-r", "--output_rds"), default="output.rds", type="character", help="path to output .rds file containing sparse per-phylum matrices"),
-  make_option(c("-t", "--output_tsv"), default="output.tsv", type="character", help="path to output .tsv file containing all data"),
+  make_option(c("-C", "--output_csv"), default="output.csv", type="character", help="path to output .tsv file containing all data"),
   make_option(c("-m", "--memory"), default=16, type="numeric",
     help="max memory (in Gb) for DuckDB")
 )
@@ -24,7 +24,7 @@ p <- parse_args(prs)
 #   input = ~/Data/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.tsv",
 #   genome_metadata = "~/Data/honeybee-gut/v1.0.1/genomes-all_metadata.tsv",
 #   output_rds = "test_output.rds",
-#   output_tsv = "test_output.tsv"
+#   output_csv = "test_output.csv"
 # )
 
 # cap memory usage to avoid getting oom-killed on a shared machine
@@ -64,8 +64,8 @@ fractional_pangenomes <- full_join(count_genomes_per_species_per_family,
                                    count_total_genomes_per_species) %>%
   mutate(frac_observed = genomes_with_family / total_genomes)
 
-message(paste0("Writing out fractional pangenomes to ", p$output_tsv))
-duckplyr::compute_csv(fractional_pangenomes, p$output_tsv)
+message(paste0("Writing out fractional pangenomes to ", p$output_csv))
+duckplyr::compute_csv(fractional_pangenomes, p$output_csv)
 
 # compute per-phylum sparse matrices
 phyla <- fractional_pangenomes %>% select(phylum) %>% distinct() %>% pull(phylum)
@@ -79,11 +79,13 @@ per_phylum_matrices <- lapply(phyla, function(p) {
   gf_nums <- sub_frac |>
     select(column0) |>
     distinct() |>
-    mutate(n_genefam = row_number())
+    mutate(n_genefam = row_number()) |>
+    collect()
   cl_nums <- sub_frac |>
     select(cluster) |>
     distinct() |>
-    mutate(n_cluster = row_number())
+    mutate(n_cluster = row_number()) |>
+    collect()
   numbered_subfrac <- left_join(sub_frac, gf_nums, by="column0") |>
     left_join(cl_nums, by="cluster")
   sparse_mtx_tbl <- numbered_subfrac |>

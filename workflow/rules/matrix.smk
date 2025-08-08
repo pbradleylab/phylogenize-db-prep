@@ -83,10 +83,10 @@ rule get_continuous:
         genome_md=config["files"]["taxonomy"][wildcards.mapping_db]
     output:
         rds="results/{database}/binary/get_binary/{mapping_db}-continuous.rds",
-        tsv="results/{database}/binary/get_binary/{mapping_db}-continuous-full.tsv"
+        csv="results/{database}/binary/get_binary/{mapping_db}-continuous-full.csv"
     shell: """
         scripts/sparse_continuous_pangenomes.R -i {input.prot_map} -g {input.genome_md} \
-            -c {input.combined} -r {output.rds} -t {output.tsv} -m {resources.mem_mb/1000}
+            -c {input.combined} -r {output.rds} -C {output.csv} -m {resources.mem_mb/1000}
     """
 
 rule get_tree:
