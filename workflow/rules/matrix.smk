@@ -95,7 +95,7 @@ rule get_continuous:
         tmp_prot_map=$thisTD/`basename {input.prot_map}`
         tmp_combined=$thisTD/`basename {input.combined}`
         scripts/sparse_continuous_pangenomes.R -i $tmp_prot_map -g {input.genome_md} \
-            -c $tmp_combined -r {output.rds} -C {output.csv} -m {resources.mem_mb/1000}
+            -c $tmp_combined -r {output.rds} -C {output.csv} -m {resources.mem_mb/1000} -s
     """
 
 rule get_tree:
