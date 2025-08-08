@@ -1,16 +1,20 @@
 #!/usr/bin/env Rscript
 
-library(tidyverse)
-library(duckplyr)
-library(Matrix)
-library(optparse)
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(duckplyr)
+  library(Matrix)
+  library(optparse)
+})
 
 opt_list <- list(
   make_option(c("-i", "--input"), type="character", help="path to protein family clustering .tsv file"),
   make_option(c("-g", "--genome_metadata"), type="character", help="path to genome metadata .tsv file"),
   make_option(c("-c", "--combined_hits"), type="character", default=NA, help="path to combined_species_hits .tsv file"),
   make_option(c("-r", "--output_rds"), default="output.rds", type="character", help="path to output .rds file containing sparse per-phylum matrices"),
-  make_option(c("-t", "--output_tsv"), default="output.tsv", type="character", help="path to output .tsv file containing all data")
+  make_option(c("-t", "--output_tsv"), default="output.tsv", type="character", help="path to output .tsv file containing all data"),
+  make_option(c("-m", "--memory"), default=16, type="numeric",
+    help="max memory (in Gb) for DuckDB")
 )
 
 prs <- OptionParser(option_list = opt_list)
@@ -23,6 +27,9 @@ p <- parse_args(prs)
 #   output_tsv = "test_output.tsv"
 # )
 
+# cap memory usage to avoid getting oom-killed on a shared machine
+db_exec("PRAGMA memory_limit = '", p$memory,"GB'")
+
 # read data
 prot_cat <- duckplyr::read_csv_duckdb(p$input, options = list(delim="\t", header=FALSE))
 genome_md <- duckplyr::read_csv_duckdb(p$genome_metadata,  options = list(delim="\t"))
@@ -31,7 +38,7 @@ if (!is.na(p$combined_hits)) {
   combined_hits <- duckplyr::read_csv_duckdb(p$combined_hits, options = list(delim="\t"))
   prot_cat_split <- prot_cat_split |>
     left_join(combined_hits, by=c("column0"="query"))
-  missing <- prot_cat_split |> select(column0, target) |> filter(is.na(target))
+  missing <- prot_cat_split |> select(column0, target) |> filter(is.na(target)) |> distinct()
   missing_gfs <- nrow(collect(missing))
   if (nrow(collect(missing) > 1)) {
     warning(paste0("Warning: ", length(missing_gfs), " gene families were not mapped"))
@@ -80,7 +87,8 @@ per_phylum_matrices <- lapply(phyla, function(p) {
   numbered_subfrac <- left_join(sub_frac, gf_nums, by="column0") |>
     left_join(cl_nums, by="cluster")
   sparse_mtx_tbl <- numbered_subfrac |>
-    select(n_cluster, n_genefam, frac_observed)
+    select(n_cluster, n_genefam, frac_observed) |>
+    collect()
   mtx <- Matrix::sparseMatrix(
     i=sparse_mtx_tbl[["n_genefam"]],
     j=sparse_mtx_tbl[["n_cluster"]],
