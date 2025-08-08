@@ -28,7 +28,7 @@ p <- parse_args(prs)
 # )
 
 # cap memory usage to avoid getting oom-killed on a shared machine
-db_exec("PRAGMA memory_limit = '", p$memory,"GB'")
+db_exec(paste0("PRAGMA memory_limit = '", p$memory,"GB'"))
 
 # read data
 prot_cat <- duckplyr::read_csv_duckdb(p$input, options = list(delim="\t", header=FALSE))
