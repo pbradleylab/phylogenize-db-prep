@@ -41,7 +41,7 @@ if (!is.na(p$combined_hits)) {
   missing <- prot_cat_split |> select(column0, target) |> filter(is.na(target)) |> distinct()
   missing_gfs <- nrow(collect(missing))
   if (nrow(collect(missing) > 1)) {
-    warning(paste0("Warning: ", length(missing_gfs), " gene families were not mapped"))
+    warning(paste0("Warning: ", (missing_gfs), " gene families were not mapped"))
     print(missing)
   }
   prot_cat_split <- select(prot_cat_split, column0=target, Genome, column1)

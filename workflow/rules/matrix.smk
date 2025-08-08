@@ -74,6 +74,7 @@ rule get_binary:
         Rscript workflow/scripts/make_binary.R {input.out} {input.tax} {output} 
         """
 
+# Note: copy to tmp storage because often much faster than streaming off a NAS
 rule get_continuous:
     resources:
         mem_mb=16000
@@ -84,9 +85,17 @@ rule get_continuous:
     output:
         rds="results/{database}/binary/get_binary/{mapping_db}-continuous.rds",
         csv="results/{database}/binary/get_binary/{mapping_db}-continuous-full.csv"
+    params:
+        tmpdir="/tmp/"
     shell: """
-        scripts/sparse_continuous_pangenomes.R -i {input.prot_map} -g {input.genome_md} \
-            -c {input.combined} -r {output.rds} -C {output.csv} -m {resources.mem_mb/1000}
+        thisTD=/tmp/contin-{wildcards.mapping_db}
+        mkdir -p $thisTD
+        cp {input.prot_map} $thisTD/{wildcards.mapping_db}
+        cp {input.combined} $thisTD/{wildcards.mapping_db}
+        tmp_prot_map=$thisTD/`basename {input.prot_map}`
+        tmp_combined=$thisTD/`basename {input.combined}`
+        scripts/sparse_continuous_pangenomes.R -i $tmp_prot_map -g {input.genome_md} \
+            -c $tmp_combined -r {output.rds} -C {output.csv} -m {resources.mem_mb/1000}
     """
 
 rule get_tree:
