@@ -26,12 +26,10 @@ rule combine_species_hits:
 
         for file in {input.tophits}; do
             db_info=$(basename $file | sed 's/_convertlis_tophits.tsv//')
-            cut -f1,2 $file | awk -v db="$db_info" '{{print $0"\t"db}}' >> /tmp/{wildcards.mapping_db}.1
+            awk -v db="$db_info" '{{print $1"\t"$2"\t"db}}' $file >> /tmp/{wildcards.mapping_db}.1
         done
-        
-        cat {input.clustered} | cut -f1  > /tmp/tmp.2
-        cat {input.clustered} | cut -f2  > /tmp/tmp.3
-        paste /tmp/tmp.2 /tmp/tmp.3 >> /tmp/{wildcards.mapping_db}.1 
+        # reverse order for clustering
+        awk -v db="denovo" '{{print $2"\t"$1"\t"db}}' {input.clustered} >> /tmp/{wildcards.mapping_db}.1 
 
         # Ensure only one gene hit is used per annotation and in the order of databases selected.
         awk '!seen[$1]++' /tmp/{wildcards.mapping_db}.1 | cut -f1,2 >> {output.tophits}
@@ -75,6 +73,21 @@ rule get_binary:
         """
         Rscript workflow/scripts/make_binary.R {input.out} {input.tax} {output} 
         """
+
+rule get_continuous:
+    resources:
+        mem_mb=16000
+    input:
+        combined="results/{database}/binary/combined_species_hits/{mapping_db}_{database}.tsv",
+        prot_map=config["files"]["mapping"][wildcards.mapping_db],
+        genome_md=config["files"]["taxonomy"][wildcards.mapping_db]
+    output:
+        rds="results/{database}/binary/get_binary/{mapping_db}-continuous.rds",
+        tsv="results/{database}/binary/get_binary/{mapping_db}-continuous-full.tsv"
+    shell: """
+        scripts/sparse_continuous_pangenomes.R -i {input.prot_map} -g {input.genome_md} \
+            -c {input.combined} -r {output.rds} -t {output.tsv} -m {resources.mem_mb/1000}
+    """
 
 rule get_tree:
     input: "results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv"
