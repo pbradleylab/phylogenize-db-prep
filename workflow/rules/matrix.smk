@@ -77,21 +77,16 @@ rule get_binary:
         """
 
 rule get_tree:
-    input: "results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv"
-    output: "results/{database}/binary/get_tree/{mapping_db}-tree.rds"
-    params:
+    input: 
+        tax="results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv",
         tree=lambda wildcards: config["files"]["tree"][wildcards.mapping_db]
+    output: "results/{database}/binary/get_tree/{mapping_db}-tree.rds"
     conda: "../envs/matrix.yml"
     shell:
         """
-        Rscript workflow/scripts/make_tree.R -i {params.tree} -t {input} -o {output}
+        name=$(python -c 'import json; print(json.load(open("config/config.json"))["files"]["mapping"]["alttree"]["{params.key}"]["name"])')
+        alttree=$(python -c 'import json; print(json.load(open("config/config.json"))["files"]["alttree"]["{params.key}"]["tree"])')
+
+        Rscript workflow/scripts/make_tree.R -i {params.tree} -a $alttree -n $name -t {input} -o {output}
         """
 
-rule get_16s:
-    input: get_16s
-    output: "results/{database}/binary/get_16s/{mapping_db}.faa"
-    conda: "../envs/matrix.yml"
-    shell:
-        """
-        echo "to be completed"  
-        """
