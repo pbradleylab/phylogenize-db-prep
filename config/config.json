@@ -1,42 +1,39 @@
 {
     "indir":"",
-    "database":"honeybee-human-gut-go-test",
+    "database":"globdb",
     "annotation":{
 	"annotate_only":"True"
     },
+    "mapping":{
+	"iterative_mapping":"True",
+	"max_iter":7
+    },
     "files":{
-		"fasta":{
-			"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.faa",
-			"human-gut":"/fs/project/bradley.720/db/uhgg2/protein_catalogue/uhgp-50.faa"
-		},
-		"mapping":{
-			"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/protein_catalogue/protein_catalogue-50.tsv",
-			"human-gut":"/fs/project/bradley.720/db/uhgg2/protein_catalogue/uhgp-50.tsv"
-		},
-		"taxonomy":{
-			"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/genomes-all_metadata.tsv",
-			"human-gut":"/fs/project/bradley.720/db/uhgg2/genomes-all_metadata.tsv",
-			"gtdb":"/home/bradley.720/projects/phylogenize-db-prep/workflow/gtdb/gtdb_genomes_all_md.tsv"
-		},
-		"tree":{
-			"honeybee-gut":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/phylogenies/bac120_iqtree.nwk",
-			"human-gut":"/fs/project/bradley.720/db/uhgg2/phylogenies/bac120_iqtree.nwk",
-			"gtdb":"/fs/project/bradley.720/db/gtdb/v226.0/bac120_r226.tree"
-		},
-		"16S":{
-			"honeybee-gut":{
-					"generate_for_16S":"False",
-					"fasta_dir":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/honeybee-gut/v1.0.1/all_genomes/"
-			},
-			"human-gut":{
-				"generate_for_16S":"False",
-				"fasta_dir":"/fs/project/bradley.720/db/uhgg2/all_genomes/"
-			},
-			"gtdb": {
-				"generate_for_16S":"False",
-				"fasta_dir":"/home/bradley.720/projects/phylogenize-db-prep/workflow/gtdb/"
-			}
+	"fasta":{
+		"globdb":"/fs/project/bradley.720/users/kananen.13/dbs/globdb/all_clusters_including_1n.faa"
+	},
+	"mapping":{
+		"globdb":"/fs/project/bradley.720/users/kananen.13/dbs/globdb/v226/cluster_map.tsv"
+	},
+        "taxonomy":{
+		"globdb":"/fs/project/bradley.720/db/globdb/v226/globdb_r226_taxonomy.tsv"
+        },
+	"tree":{
+		"globdb":"/fs/project/bradley.720/db/globdb/v226/taxonomic_profiling/globdb_r226_trees/bacteria_globdb_r226.tree"
+	},
+	"alttree":{
+                "globdb":{
+                        "tree":"/fs/project/bradley.720/db/globdb/v226/taxonomic_profiling/globdb_r226_trees/archaea_globdb_r226.tree",
+                        "name":""
+                }
+        },
+	"16S":{
+		"globdb":{
+                       "generate_for_16S":"False",
+                       "fasta":""
+ 
 		}
+	}
     },
     "target_db":{
 	"skip_db_download":"True",

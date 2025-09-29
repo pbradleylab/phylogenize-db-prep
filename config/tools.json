@@ -5,7 +5,10 @@
         },
         "map":{
             "threads":40,
-            "sensitivity":"--start-sens 1 --sens-steps 3 -s 7"
+            "sensitivity":"--start-sens 1 --sens-steps 3 -s 7",
+	    "min_seq_id":"--min-seq-id 0.50",
+	    "split":"",
+	    "split_memory_limit":""
         },
         "createdb":{
             "threads":32
