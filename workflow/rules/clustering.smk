@@ -7,9 +7,7 @@ rule mmseqs2_convertalis:
      input:
          query=rules.make_current_query_databases.output.query_path,
          target=rules.make_targets.output.target_path,
-         linker=rules.map_query.output
-     params:
-         map=rules.map_query.params.outdir
+         linker=get_iterative_mapping
      output:
          blast="results/{database}/clustering/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.8",
          list="results/{database}/clustering/mmseqs2/convertalis/{target_db}_{mapping_db}_convertlis.list"
@@ -18,9 +16,10 @@ rule mmseqs2_convertalis:
      threads: config["mmseqs2"]["convertalis"]["threads"]
      shell:
          """
+	 map=$(basename {input.linker})
          mmseqs convertalis {input.query}/{wildcards.mapping_db} \
              {input.target}/{wildcards.target_db} \
-             {params.map}/{wildcards.mapping_db} {output.blast} --format-mode 4 \
+             $map/{wildcards.mapping_db} {output.blast} --format-mode 4 \
              --format-output query,target,pident 2> {log}
          cut -f1 {output.blast} | sed '1d' > {output.list}
          """
@@ -29,18 +28,17 @@ rule mmseqs2_convertalis_full_blast:
      input:
          query=rules.make_current_query_databases.output.query_path,
          target=rules.make_targets.output.target_path,
-         linker=rules.map_query.output
-     params:
-         map=rules.map_query.params.outdir
+         linker=get_iterative_mapping
      output:"results/{database}/clustering/mmseqs2/convertalis_full_blast/{target_db}_{mapping_db}_convertlis.8"
      conda: "../envs/clustering.yml"
      log: "logs/{database}/clustering/mmseqs2_convertalis/{target_db}_{mapping_db}.log"
      threads: config["mmseqs2"]["convertalis"]["threads"]
      shell:
          """
+         map=$(basename {input.linker})
          mmseqs convertalis {input.query}/{wildcards.mapping_db} \
              {input.target}/{wildcards.target_db} \
-             {params.map}/{wildcards.mapping_db} {output} --format-mode 4 \
+             $map/{wildcards.mapping_db} {output} --format-mode 4 \
              --format-output "query,qlen,target,tlen,evalue,bits,alnlen,nident" 2> {log}
          sed -i '1d' {output}
          """

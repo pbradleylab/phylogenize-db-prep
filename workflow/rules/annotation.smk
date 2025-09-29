@@ -43,9 +43,9 @@ def get_ko(wildcards):
 
 rule emapper:
     input:
-        targets=get_targets,
+        targets=get_queries,
         diamond=rules.download_diamond.output
-    output:"results/{database}/annotation/emapper/{target_db}/go_annotations.emapper.annotations"
+    output:"results/{database}/annotation/emapper/{mapping_db}/go_annotations.emapper.annotations"
     params:
         prefix="go_annotations",
         go_evidence=config["emapper"]["go_evidence"]
@@ -63,7 +63,7 @@ rule emapper:
 
 rule make_go_db:
     input:rules.emapper.output
-    output:"results/{database}/annotation/make_go_db/{target_db}.3"
+    output:"results/{database}/annotation/make_go_db/{mapping_db}.3"
     shell:
         """
         cut -f1,10 {input} | grep -v '##' | grep -v "-" > {output}
@@ -86,8 +86,8 @@ rule parse_blast:
 
 rule reannotate_blast_results:
     input:
-        processed_go=rules.parse_blast.output
-        phenotype=rule.download_go_ontology.output
+        processed_go=rules.parse_blast.output,
+        phenotype=rules.download_go_ontology.output
     output:"results/{database}/annotation/reannotate_blast_results/{target_db}_{mapping_db}.tsv"
     conda: "../envs/annotation.yml"
     shell:
@@ -218,7 +218,7 @@ rule combine_link_info:
     output:"results/{database}/annotation/combine_link_info/{mapping_db}/ko_merged.tsv"
     shell:
         """
-        head -n 1 {input}[0] > {output}
+        head -n 1 {input[0]} > {output}
 
         for f in {input}; do
             tail -n +2 "$f" >> {output}
@@ -228,7 +228,7 @@ rule combine_link_info:
 rule link_nodes:
     input:
         seqs=rules.combine_link_info.output,
-        merged=rules.combine_species_hits.output,
+        merged=rules.combine_species_hits.output.tophits,
         internal_map=rules.get_taxonomy.output.out
     output:"results/{database}/annotation/link_nodes/{mapping_db}/node_annotations.tsv"
     conda:"../envs/annotation.yml"

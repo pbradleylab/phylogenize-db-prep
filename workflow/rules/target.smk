@@ -13,11 +13,14 @@ rule make_targets:
     output:
         index="results/{database}/target/make_targets/{target_db}/{target_db}.index",
         target_path=directory("results/{database}/target/make_targets/{target_db}/")
+    params:
+        split=config["mmseqs2"]["map"]["split"],
+        split_memory_limit=config["mmseqs2"]["map"]["split_memory_limit"]
     conda: "../envs/target.yml"
     log: "logs/{database}/target/make_targets/{target_db}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """
         mmseqs createdb {input} {output.target_path}/{wildcards.target_db} --dbtype 1 2> {log}
-        mmseqs createindex {output.target_path}/{wildcards.target_db} /tmp 2> {log}
+        mmseqs createindex {output.target_path}/{wildcards.target_db} {params.split} {params.split_memory_limit} /tmp 2> {log}
         """

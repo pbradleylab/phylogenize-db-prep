@@ -33,7 +33,7 @@ rule combine_species_hits:
 
         # Ensure only one gene hit is used per annotation and in the order of databases selected.
         awk '!seen[$1]++' /tmp/{wildcards.mapping_db}.1 | cut -f1,2 >> {output.tophits}
-        rm /tmp/{wildcards.mapping_db}.1 /tmp/tmp.2 /tmp/tmp.3
+        rm /tmp/{wildcards.mapping_db}.1 
 
         cat {input.allhits} > {output.allhits}
         """
@@ -76,27 +76,29 @@ rule get_binary:
 
 # Note: copy to tmp storage because often much faster than streaming off a NAS
 rule get_continuous:
+    input: rules.combine_species_hits.output.tophits
+    output:
+        rds="results/{database}/binary/get_binary/get_continuous/{mapping_db}-continuous.rds",
+        csv="results/{database}/binary/get_binary/get_continuous/{mapping_db}-continuous-full.csv"
+    params:
+        tmpdir="/tmp/",
+        key="{mapping_db}"
     resources:
         mem_mb=16000
-    input:
-        combined="results/{database}/binary/combined_species_hits/{mapping_db}_{database}.tsv",
-        prot_map=config["files"]["mapping"][wildcards.mapping_db],
-        genome_md=config["files"]["taxonomy"][wildcards.mapping_db]
-    output:
-        rds="results/{database}/binary/get_binary/{mapping_db}-continuous.rds",
-        csv="results/{database}/binary/get_binary/{mapping_db}-continuous-full.csv"
-    params:
-        tmpdir="/tmp/"
-    shell: """
-        thisTD=/tmp/contin-{wildcards.mapping_db}
-        mkdir -p $thisTD
-        cp {input.prot_map} $thisTD/{wildcards.mapping_db}
-        cp {input.combined} $thisTD/{wildcards.mapping_db}
-        tmp_prot_map=$thisTD/`basename {input.prot_map}`
-        tmp_combined=$thisTD/`basename {input.combined}`
-        scripts/sparse_continuous_pangenomes.R -i $tmp_prot_map -g {input.genome_md} \
-            -c $tmp_combined -r {output.rds} -C {output.csv} -m {resources.mem_mb/1000} -s
-    """
+    conda: "../envs/matrix.yml"
+    shell:
+        """
+        prot_map=$(python -c 'import json; print(json.load(open("config/config.json"))["files"]["mapping"]["{params.key}"])')
+        genome_md=$(python -c 'import json; print(json.load(open("config/config.json"))["files"]["taxonomy"]["{params.key}"])')
+        #thisTD=results/tmp/{wildcards.mapping_db}
+        #mkdir -p $thisTD
+        #cp $prot_map $thisTD/{wildcards.mapping_db}
+        #cp {input} $thisTD/{wildcards.mapping_db}
+        #tmp_prot_map=$thisTD/`basename $prot_map`
+        #tmp_combined=$thisTD/`basename {input}`
+        workflow/scripts/sparse_continuous_pangenomes.R -i $prot_map -g $genome_md \
+            -c {input} -r {output.rds} -C {output.csv} -m 16 -s TRUE
+        """
 
 rule get_tree:
     input: "results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv"
@@ -107,13 +109,4 @@ rule get_tree:
     shell:
         """
         Rscript workflow/scripts/make_tree.R -i {params.tree} -t {input} -o {output}
-        """
-
-rule get_16s:
-    input: get_16s
-    output: "results/{database}/binary/get_16s/{mapping_db}.faa"
-    conda: "../envs/matrix.yml"
-    shell:
-        """
-        echo "to be completed"  
         """

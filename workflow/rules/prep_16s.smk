@@ -1,3 +1,5 @@
+include:"annotation.smk"
+
 rule get_16s:
     input:
       fa=lambda wc: config["files"]["16S"][wc.mapping_db]["fasta_dir"],

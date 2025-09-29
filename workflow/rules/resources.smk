@@ -37,6 +37,6 @@ rule download_go_ontology:
     conda:"../envs/annotation.yml"
     shell:
         """
-        mkdir $(dirname {output})
-        wget -O http://purl.obolibrary.org/obo/go.obo {output}
+        mkdir -p $(dirname {output})
+        wget -O {output} http://purl.obolibrary.org/obo/go.obo
         """

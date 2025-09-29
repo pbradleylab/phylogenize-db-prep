@@ -7,3 +7,10 @@ dependencies:
   - r-base=4.4.3
   - r-matrix
   - r-ape
+  - r-castor
+  - r-optparse
+  - r-readr
+  - r-dplyr
+  - r-purrr
+  - r-duckplyr
+  - r-tidyverse

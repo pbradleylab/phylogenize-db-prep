@@ -29,7 +29,7 @@ def get_cumulative_unmapped_queries(wildcards):
     # Get the initial query sequences
     current_target_index = TARGET_DBS.index(wildcards.target_db)
     if current_target_index == 0:
-        return config["files"]["fasta"].get(wildcards.mapping_db)
+        return(config["files"]["fasta"].get(wildcards.mapping_db))
     else:
         previous_target = TARGET_DBS[current_target_index - 1]
         return(rules.faSomeRecords.output.cumulative_unmapped.format(database=wildcards.database, mapping_db=wildcards.mapping_db, target_db=previous_target))
@@ -56,13 +56,16 @@ rule make_query_databases:
     output:
         index="results/{database}/query/make_query_databases/{mapping_db}/{mapping_db}.index",
         query_path=directory("results/{database}/query/make_query_databases/{mapping_db}/")
+    params:
+        split=config["mmseqs2"]["map"]["split"],
+        split_memory_limit=config["mmseqs2"]["map"]["split_memory_limit"]
     conda: "../envs/query.yml"
     log: "logs/{database}/query/make_query_databases/{mapping_db}.log"
     threads: config["mmseqs2"]["createdb"]["threads"]
     shell:
         """
         mmseqs createdb {input} {output.query_path}/{wildcards.mapping_db} --dbtype 1 2> {log}
-        mmseqs createindex {output.query_path}/{wildcards.mapping_db} /tmp 2> {log}
+        mmseqs createindex {output.query_path}/{wildcards.mapping_db} {params.split} {params.split_memory_limit} /tmp 2> {log}
         """
 
 # Ensures that for each target the mapping database is fully run 
