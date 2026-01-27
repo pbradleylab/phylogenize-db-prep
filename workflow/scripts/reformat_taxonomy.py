@@ -14,10 +14,20 @@ def transform(df, mapping, tax, args):
     tmp=df.join(mapping, on="query", how="left")
     tmp=tmp.with_columns([
         pl.col("query").str.split(args.split_char).list.get(0).alias("query")])
-    
+   
+    print(tmp)
+    sys.exit()
     tax=tax["Genome","Species_rep"]
     tax.columns=["query","cluster"]
 
+    tax=tax.with_columns(pl.col("query").cast(pl.Utf8))
+    tmp=tmp.with_columns(pl.col("query").cast(pl.Utf8))
+    tmp=tmp.with_columns(pl.col("target").cast(pl.Utf8))
+    
+
+    print(tax)
+    print(tmp)
+    sys.exit()
     tmp=tmp.join(tax, on="query", how="left")
    
     out=tmp.with_columns([
@@ -27,7 +37,7 @@ def transform(df, mapping, tax, args):
 
 def translate(df, tax):
     tax=tax.with_columns([
-            pl.col("Lineage").str.replace_all(r"\b[a-z]__+", "").str.replace_all(r"_", " ").str.split(";"),
+            pl.col("Lineage").str.replace_all(r"\b[a-z]__+", "").str.replace_all(r" ", " ").str.split(";"),
             pl.col("Genome").str.split(args.split_char).list.get(0).alias("query")])
     tax=tax.with_columns([
         pl.col("Lineage").list.get(i).alias(name)
