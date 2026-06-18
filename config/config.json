@@ -1,10 +1,48 @@
 {
-    "pepfile":"config/pepconfig.yml",
+    "indir":"",
+    "database":"custom_fesnov_correct_second",
+    "annotation":{
+	"annotate_only":"True"
+    },
+    "files":{
+	"fasta":{
+		"marine":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/marine/v2.0/protein_catalogue/protein_catalogue-50.faa"
+	},
+	"mapping":{
+                "marine":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/marine/v2.0/protein_catalogue/protein_catalogue-50.tsv"
+	},
+        "taxonomy":{
+                "marine":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/marine/v2.0/genomes-all_metadata.tsv"
+        },
+	"tree":{
+                "marine":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/marine/v2.0/phylogenies/bac120_fasttree.nwk"
+	},
+	"alttree":{
+		"marine":{
+			"tree":"/fs/project/bradley.720/db/mgnify_dbs/mgnify_genomes/marine/v2.0/phylogenies/ar53_iqtree.nwk",
+			"name":"Archaea"
+		}
+	},
+	"16S":{
+		"marine":{
+                       "generate_for_16S":"False",
+                       "fasta":""
+ 
+		}
+	}
+    },
     "target_db":{
-        "uhgp50_url":"http://ftp.ebi.ac.uk/pub/databases/metagenomics/mgnify_genomes/human-gut/v2.0.1/protein_catalogue/uhgp-50.tar.gz",
-        "uniref50_url":"",
-        "skip_db_download":"True",
-        "uhgp50_local_path":"",
-        "uniref50_local_path":""
-    }
+	"skip_db_download":"True",
+	"urls":{
+		"uhgp50_url":"",
+		"uniref50_url":"",
+		"gtdb_url":""
+	},
+	"paths":{
+		"uniref50":"/fs/project/bradley.720/db/uniref/230728/uniref50/uniref50.fasta",
+		"uhgp50":"/fs/project/bradley.720/users/kananen.13/analysis/240916/phylogenize/db_conversion/midas1.2/resources/uhgp-50.faa",
+		"fesnov":"/fs/project/bradley.720/db/FESNov/250421/FESNov_fams.rep_seq.faa"
+	}
+    },
+    "pepfile":"config/pepconfig.yml"
 }

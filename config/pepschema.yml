@@ -1,0 +1,27 @@
+description: Phylogenize input sample schema for generating new databases. 
+imports:
+  - http:/schema.databio.org/pep/2.0.0.yaml
+properties:
+  samples:
+    type: array
+    items:
+      type: object
+      properties:
+        project:
+          type: string
+          description: "Project Identifier For The Sample"
+        sample_name: 
+          type: string
+          description: "Name Of The Sample"
+        pangenomes:
+          anyOf:
+            - type: string
+              description: "Pangenome"
+            - type: array
+      required_files:
+        - pangenomes
+      required:
+        - sample_name
+        - project
+required:
+  - samples
