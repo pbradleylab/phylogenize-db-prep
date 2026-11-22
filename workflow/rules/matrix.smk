@@ -1,5 +1,7 @@
 include: "clustering.smk"
 
+import shlex
+
 
 
 def get_top_hits(wildcards):
@@ -43,50 +45,56 @@ rule combine_species_hits:
 # Create the taxonomy file and generate the input for making the binary file needed
 # to pass into R to compress and separate into a list of binaries per phylum.
 rule get_taxonomy:
-    input: rules.combine_species_hits.output.tophits
+    input:
+        hits=rules.combine_species_hits.output.tophits,
+        mapping=lambda wildcards: config["files"]["mapping"][wildcards.mapping_db],
+        taxonomy=lambda wildcards: config["files"]["taxonomy"][wildcards.mapping_db],
+        script="workflow/scripts/reformat_taxonomy.py"
     output: 
         out=temporary("results/{database}/binary/get_taxonomy/{mapping_db}-binary-temp.csv"),
         tax="results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv"
     params:
-        split_char=config["create_species_matrix"]["split_char"],
-        key="{mapping_db}"
+        split_char=config["create_species_matrix"]["split_char"]
     conda: "../envs/matrix.yml"
     shell:
         """
-        mapping=$(python -c 'import json; print(json.load(open("config/config.json"))["files"]["mapping"]["{params.key}"])')
-        tax=$(python -c 'import json; print(json.load(open("config/config.json"))["files"]["taxonomy"]["{params.key}"])')
-        
-        python workflow/scripts/reformat_taxonomy.py \
-            --input {input} \
-            --tax $tax \
-            --split_char {params.split_char} \
-            --output {output.out} \
-            --tax_output {output.tax} \
-            --mapping $mapping
+        python {input.script:q} \
+            --input {input.hits:q} \
+            --tax {input.taxonomy:q} \
+            --split_char {params.split_char:q} \
+            --output {output.out:q} \
+            --tax_output {output.tax:q} \
+            --mapping {input.mapping:q}
         """
 
 rule get_binary:
     input: 
         out=rules.get_taxonomy.output.out,
-        tax=rules.get_taxonomy.output.tax
+        tax=rules.get_taxonomy.output.tax,
+        script="workflow/scripts/make_binary.R"
     output: "results/{database}/binary/get_binary/{mapping_db}-binary.rds"
     conda: "../envs/matrix.yml"
     shell:
         """
-        Rscript workflow/scripts/make_binary.R {input.out} {input.tax} {output} 
+        Rscript {input.script:q} {input.out:q} {input.tax:q} {output:q}
         """
 
 rule get_tree:
     input: 
         tax="results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv",
-        tree=lambda wildcards: config["files"]["tree"][wildcards.mapping_db]
+        tree=lambda wildcards: config["files"]["tree"][wildcards.mapping_db],
+        alttree=lambda wildcards: [config["files"]["alttree"][wildcards.mapping_db]["tree"]]
+        if config["files"].get("alttree", {}).get(wildcards.mapping_db, {}).get("tree") else [],
+        script="workflow/scripts/make_tree.R"
     output: "results/{database}/binary/get_tree/{mapping_db}-tree.rds"
     params:
-        alttree=lambda wildcards: config["files"]["alttree"][wildcards.mapping_db]["altree"],
-        altname=lambda wildcards: config["files"]["alttree"][wildcards.mapping_db]["name"]
+        alttree_args=lambda wildcards, input: shlex.join([
+            "-a", *input.alttree,
+            "-n", config["files"]["alttree"][wildcards.mapping_db].get("name", "")
+        ]) if input.alttree else ""
     conda: "../envs/matrix.yml"
     shell:
         """
-        Rscript workflow/scripts/make_tree.R -i {params.tree} -a {params.alttree} -n {params.altname} -t {input} -o {output}
+        Rscript {input.script:q} -i {input.tree:q} {params.alttree_args} -t {input.tax:q} -o {output:q}
         """
 
