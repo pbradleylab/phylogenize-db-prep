@@ -25,6 +25,7 @@ def get_final_output(wildcards):
 
         outputs.append(rules.get_binary.output[0].format(database=config['database'], mapping_db=mapping_db))
         outputs.append(rules.get_tree.output[0].format(database=config['database'], mapping_db=mapping_db))
+        outputs.append(rules.get_continuous.output.rds.format(database=config['database'], mapping_db=mapping_db))
         
         # Not yet implemented
         #if config["files"]["16S"][mapping_db]["generate_for_16S"] == "True":

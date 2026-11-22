@@ -12,3 +12,5 @@ dependencies:
   - r-readr
   - r-dplyr
   - r-purrr
+  - r-tidyr
+  - r-duckplyr
