@@ -24,6 +24,17 @@ uses the configured protein membership table, source metadata, and combined fami
 hits, and runs as part of the default workflow. It requests 8 CPUs and 64 GB of
 memory, caps DuckDB at 16 GB, and builds the matrices in memory after aggregation.
 
+Phylogenetic output is written to
+`results/{database}/binary/get_tree/{mapping_db}-tree.rds` as a list of trees named
+by the taxonomy's phylum column. The primary `files.tree` and optional
+`files.alttree.<mapping_db>.tree` are normalized separately using RED, then split
+by phylum. Tip labels are reconciled with canonical taxonomy IDs while preserving
+their version suffixes in the output. Ambiguous IDs, overlapping source trees,
+missing species, and phyla spanning both trees stop the build. The legacy
+alternate-tree name does not override taxonomy phylum names. Direct script calls
+may supply `--allow_missing_species` with an exact audited CSV of missing `cluster`
+IDs; those species remain absent from the phylogenetic output.
+
 The final results will be in the `results/your_database_name/final/` all intermediate results are in `results/your_database_name/specific_tool_name`. If there are space limitations and you don't wish to retain any of these files, then in each rule that isn't desired add a `temp(output)` to the output line like: `output: temp(rules.something.output)` and the file will only be generated temporarily for any rules that need it. They will be retained if the rules that require the files as input fail, but will be removed if the all rules requiring the file succeeds.
 ## Submission Process
 Please contact either [Kathryn Kananen](kananen.13@osu.edu) or [Patrick Bradley](bradley.720@osu.edu) if you wish to submit to the phylogenize databases being used. If you need help transfering the final matrix to us, then please contact [Kathryn Kananen](kananen.13@osu.edu) to help facilitate a transfer of the larger file. 

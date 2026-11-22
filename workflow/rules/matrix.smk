@@ -116,8 +116,7 @@ rule get_tree:
     output: "results/{database}/binary/get_tree/{mapping_db}-tree.rds"
     params:
         alttree_args=lambda wildcards, input: shlex.join([
-            "-a", *input.alttree,
-            "-n", config["files"]["alttree"][wildcards.mapping_db].get("name", "")
+            "-a", *input.alttree
         ]) if input.alttree else ""
     conda: "../envs/matrix.yml"
     shell:
