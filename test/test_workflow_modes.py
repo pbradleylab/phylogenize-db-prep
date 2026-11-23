@@ -135,10 +135,10 @@ class ModeGraphTests(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content)
 
-    def run_workflow(self, *options, error=None):
+    def run_workflow(self, *options, error=None, target="all"):
         (self.directory / "config/config.json").write_text(json.dumps(self.config))
         result = subprocess.run([
-            sys.executable, "-m", "snakemake", "all", "--snakefile", "workflow/Snakefile",
+            sys.executable, "-m", "snakemake", target, "--snakefile", "workflow/Snakefile",
             "--directory", str(self.directory), "--dry-run", "--nolock", "--cores", "1", *options,
         ], cwd=self.directory, env={
             **os.environ, "PYTHONDONTWRITEBYTECODE": "1", "XDG_CACHE_HOME": str(self.directory / "cache"),
@@ -150,6 +150,51 @@ class ModeGraphTests(unittest.TestCase):
         else:
             self.assertEqual(result.returncode, 0, output)
         return output
+
+    eggnog_files = {
+        "eggnog_proteins.dmnd": "download_diamond",
+        "eggnog.db": "download_eggnog_annotations",
+        "eggnog.taxa.db": "download_eggnog_taxa",
+        "eggnog.taxa.db.traverse.pkl": "download_eggnog_taxa",
+    }
+    emapper_target = "results/mode-test/annotation/emapper/reference/go_annotations.emapper.annotations"
+
+    def test_emapper_downloads_databases_in_an_existing_empty_directory(self):
+        data_dir = self.directory / "resources/eggnog"
+        data_dir.mkdir(parents=True)
+        (data_dir / ".snakemake_timestamp").touch()
+        (data_dir / "eggnog_proteins.dmnd.gz").touch()
+        output = self.run_workflow("--printshellcmds", target=self.emapper_target)
+        for rule in set(self.eggnog_files.values()):
+            self.assertIn("rule " + rule + ":", output)
+        self.assertIn("--data_dir resources/eggnog", output)
+        self.assertNotIn("--data_dir resources/eggnog/eggnog_proteins.dmnd", output)
+
+    def test_emapper_downloads_only_the_missing_database(self):
+        data_dir = self.directory / "resources/eggnog"
+        data_dir.mkdir(parents=True)
+        for filename in self.eggnog_files:
+            (data_dir / filename).write_text("cached database")
+        for filename, expected_rule in self.eggnog_files.items():
+            with self.subTest(missing=filename):
+                (data_dir / filename).unlink()
+                output = self.run_workflow(target=self.emapper_target)
+                for rule in set(self.eggnog_files.values()):
+                    if rule == expected_rule:
+                        self.assertIn("rule " + rule + ":", output)
+                    else:
+                        self.assertNotIn("rule " + rule + ":", output)
+                (data_dir / filename).write_text("cached database")
+
+    def test_emapper_reuses_complete_eggnog_databases(self):
+        data_dir = self.directory / "resources/eggnog"
+        data_dir.mkdir(parents=True)
+        for filename in self.eggnog_files:
+            (data_dir / filename).write_text("cached database")
+        output = self.run_workflow(target=self.emapper_target)
+        self.assertIn("rule emapper:", output)
+        for rule in set(self.eggnog_files.values()):
+            self.assertNotIn("rule " + rule + ":", output)
 
     def test_full_mode_builds_profiles_and_both_annotation_branches(self):
         output = self.run_workflow()

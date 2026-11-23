@@ -24,13 +24,44 @@ rule anvio_setup_kegg_kofams:
         """
 
 rule download_diamond:
-   output:directory("resources/eggnog/")
-   conda:"../envs/eggnog.yml"
-   shell:
-       """
-       mkdir -p {output}
-       python workflow/scripts/download_eggnog_data.py -F -y --data_dir {output}
-       """
+    output:"resources/eggnog/eggnog_proteins.dmnd"
+    params:
+        data_dir="resources/eggnog"
+    conda:"../envs/eggnog.yml"
+    shell:
+        """
+        mkdir -p {params.data_dir:q}
+        python workflow/scripts/download_eggnog_data.py --db diamond -y --data_dir {params.data_dir:q}
+        test -s {output:q}
+        """
+
+rule download_eggnog_annotations:
+    output:"resources/eggnog/eggnog.db"
+    params:
+        data_dir="resources/eggnog"
+    conda:"../envs/eggnog.yml"
+    shell:
+        """
+        mkdir -p {params.data_dir:q}
+        python workflow/scripts/download_eggnog_data.py --db annotations -y --data_dir {params.data_dir:q}
+        test -s {output:q}
+        """
+
+rule download_eggnog_taxa:
+    output:
+        db="resources/eggnog/eggnog.taxa.db",
+        traversal="resources/eggnog/eggnog.taxa.db.traverse.pkl"
+    params:
+        data_dir="resources/eggnog"
+    conda:"../envs/eggnog.yml"
+    shell:
+        """
+        mkdir -p {params.data_dir:q}
+        python workflow/scripts/download_eggnog_data.py --db taxa -y --data_dir {params.data_dir:q}
+        for db in {output:q}; do
+            test -s "$db"
+        done
+        """
 
 rule download_go_ontology:
     output:"resources/go_ontology/obo/go.obo"

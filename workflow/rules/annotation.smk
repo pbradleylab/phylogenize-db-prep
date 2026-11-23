@@ -44,11 +44,14 @@ def get_fasta(wildcards):
 rule emapper:
     input:
         targets=get_targets,
-        diamond=rules.download_diamond.output
+        diamond=rules.download_diamond.output,
+        annotations=rules.download_eggnog_annotations.output,
+        taxa=rules.download_eggnog_taxa.output
     output:"results/{database}/annotation/emapper/{target_db}/go_annotations.emapper.annotations"
     params:
         prefix="go_annotations",
-        go_evidence=config["emapper"]["go_evidence"]
+        go_evidence=config["emapper"]["go_evidence"],
+        data_dir="resources/eggnog"
     conda: "../envs/eggnog.yml"
     threads:config["emapper"]["threads"]
     shell:
@@ -58,7 +61,7 @@ rule emapper:
            -o $outdir/{params.prefix} \
            --cpu {threads} \
            --go_evidence {params.go_evidence} \
-           --data_dir {input.diamond}
+           --data_dir {params.data_dir:q}
         """
 
 rule make_go_db:

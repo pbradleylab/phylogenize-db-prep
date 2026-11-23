@@ -2,6 +2,8 @@
 
 import os, sys
 import argparse
+import subprocess
+from shlex import quote
 
 from eggnogmapper.common import get_eggnogdb_file, get_ncbitaxadb_file, get_eggnog_mmseqs_dbpath, get_pfam_dbpath, get_hmmer_base_dbpath
 from eggnogmapper.common import pexists, set_data_path, get_data_path, existing_dir, HMMPRESS
@@ -12,10 +14,10 @@ from eggnogmapper.version import __DB_VERSION__, __NOVEL_FAMS_DB_VERSION__
 if sys.version_info < (3,7):
     sys.exit('Sorry, Python < 3.7 is not supported')
     
-BASE_URL = f'http://eggnogdb.embl.de/download/emapperdb-{__DB_VERSION__}'
-EGGNOG_URL = f'http://eggnog5.embl.de/download/eggnog_5.0/per_tax_level'
-EGGNOG_DOWNLOADS_URL = 'http://eggnog5.embl.de/#/app/downloads'
-NOVEL_FAMS_BASE_URL = f'http://eggnogdb.embl.de/download/novel_fams-{__NOVEL_FAMS_DB_VERSION__}'
+BASE_URL = f'https://eggnog5.embl.de/download/emapperdb-{__DB_VERSION__}'
+EGGNOG_URL = f'https://eggnog5.embl.de/download/eggnog_5.0/per_tax_level'
+EGGNOG_DOWNLOADS_URL = 'https://eggnog5.embl.de/#/app/downloads'
+NOVEL_FAMS_BASE_URL = f'https://eggnog5.embl.de/download/novel_fams-{__NOVEL_FAMS_DB_VERSION__}'
 
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
                       argparse.RawDescriptionHelpFormatter):
@@ -24,7 +26,10 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter,
 def run(cmd):
     print(colorify(cmd, 'cyan'))
     if not args.simulate:
-        os.system(cmd)
+        subprocess.run(cmd, shell=True, check=True)
+
+def db_present(path):
+    return os.path.isfile(path) and os.path.getsize(path) > 0
 
 def gunzip_flag():
     if args.force:
@@ -36,10 +41,10 @@ def gunzip_flag():
 def download_annotations(data_path):
     url = BASE_URL + '/eggnog.db.gz'
     cmd = (
-        f'cd {data_path} && '
+        f'cd {quote(data_path)} && '
         f'wget -nH --user-agent=Mozilla/5.0 --relative --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off -O eggnog.db.gz {url} && '
         f'echo Decompressing... && '
-        f'gunzip eggnog.db.gz {gunzip_flag()}'
+        f'gunzip -f eggnog.db.gz'
     )
     run(cmd)
 
@@ -48,7 +53,7 @@ def download_annotations(data_path):
 def download_taxa(data_path):
     url = BASE_URL + '/eggnog.taxa.tar.gz'
     cmd = (
-        f'cd {data_path} && '
+        f'cd {quote(data_path)} && '
         f'wget -nH --user-agent=Mozilla/5.0 --relative --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off -O eggnog.taxa.tar.gz {url} && '
         f'echo Decompressing... && '
         f'tar -zxf eggnog.taxa.tar.gz && '
@@ -61,10 +66,10 @@ def download_taxa(data_path):
 def download_diamond_db(data_path):
     url = BASE_URL + '/eggnog_proteins.dmnd.gz'
     cmd = (
-        f'cd {data_path} && '
+        f'cd {quote(data_path)} && '
         f'wget -nH --user-agent=Mozilla/5.0 --relative --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off -O eggnog_proteins.dmnd.gz {url} && '
         f'echo Decompressing... && '
-        f'gunzip eggnog_proteins.dmnd.gz {gunzip_flag()}'
+        f'gunzip -f eggnog_proteins.dmnd.gz'
     )
     run(cmd)
 
@@ -73,7 +78,7 @@ def download_diamond_db(data_path):
 def download_novel_fams_diamond_db(data_path):
     url = NOVEL_FAMS_BASE_URL + '/novel_fams.dmnd.gz'
     cmd = (
-        f'cd {data_path} && '
+        f'cd {quote(data_path)} && '
         f'wget -nH --user-agent=Mozilla/5.0 --relative --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off -O novel_fams.dmnd.gz {url} && '
         f'echo Decompressing... && '
         f'gunzip novel_fams.dmnd.gz {gunzip_flag()}'
@@ -84,7 +89,7 @@ def download_novel_fams_diamond_db(data_path):
 def download_novel_fams_annots_db(data_path):
     url = NOVEL_FAMS_BASE_URL + '/novel_fams.pkl.gz'
     cmd = (
-        f'cd {data_path} && '
+        f'cd {quote(data_path)} && '
         f'wget -nH --user-agent=Mozilla/5.0 --relative --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off -O novel_fams.pkl.gz {url} && '
         f'echo Decompressing... && '
         f'gunzip novel_fams.pkl.gz {gunzip_flag()}'
@@ -97,7 +102,7 @@ def download_novel_fams_annots_db(data_path):
 def download_mmseqs_db(data_path):
     url = BASE_URL + '/mmseqs.tar.gz'
     cmd = (
-        f'cd {data_path} && '
+        f'cd {quote(data_path)} && '
         f'wget -nH --user-agent=Mozilla/5.0 --relative --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off -O mmseqs.tar.gz {url} && '
         f'echo Decompressing... && '
         f'tar -zxf mmseqs.tar.gz && '
@@ -110,7 +115,7 @@ def download_mmseqs_db(data_path):
 def download_pfam_db(data_path):
     url = BASE_URL + '/pfam.tar.gz'
     cmd = (
-        f'cd {data_path} && '
+        f'cd {quote(data_path)} && '
         f'wget -nH --user-agent=Mozilla/5.0 --relative --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off -O pfam.tar.gz {url} && '
         f'echo Decompressing... && '
         f'tar -zxf pfam.tar.gz && '
@@ -144,7 +149,7 @@ def download_hmm_database(level, dbname, dbpath):
 
     # Create HMMER database
     cmd = (
-        f'cd {dbpath}; '
+        f'cd {quote(dbpath)}; '
         f'echo Downloading HMMs... && '
         f'wget {flag} -nH --user-agent=Mozilla/5.0 --relative -r --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off {hmmsurl} && '
         f'echo Decompressing HMMs... && '
@@ -174,7 +179,7 @@ def download_hmm_database(level, dbname, dbpath):
 
     # Transform alignment files to fasta files
     cmd = (
-        f'cd {dbpath}; '
+        f'cd {quote(dbpath)}; '
         f'echo Downloading FASTAs... && '
         f'wget {flag} -nH --user-agent=Mozilla/5.0 --relative -r --no-parent --reject "index.html*" --cut-dirs=4 -e robots=off {seqsurl} && '
         f'echo Decompressing FASTAs... && '
@@ -200,6 +205,9 @@ def download_hmm_database(level, dbname, dbpath):
 # MAIN
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=CustomFormatter)
+
+    parser.add_argument('--db', choices=['annotations', 'taxa', 'diamond'],
+                        help='Download only the selected core database; by default download all three')
 
     parser.add_argument('-D', action="store_true", dest='skip_diamond',
                         help='Do not install the diamond database')
@@ -257,26 +265,27 @@ if __name__ == "__main__":
     ##
     # Annotation DB
     
-    if args.force or not pexists(get_eggnogdb_file()):
+    if args.db in (None, 'annotations') and (args.force or not db_present(get_eggnogdb_file())):
         if args.allyes or ask("Download main annotation database?") == 'y':
             print(colorify(f'Downloading "eggnog.db" at {data_path}...', 'green'))
             download_annotations(data_path)
         else:
             print('Skipping')
-    else:
+    elif args.db in (None, 'annotations'):
         if not args.quiet:
             print(colorify('Skipping eggnog.db database (already present). Use -f to force download', 'lblue'))
 
     ##
     # NCBI taxa
     
-    if args.force or not pexists(get_ncbitaxadb_file()):
+    taxa_files = [get_ncbitaxadb_file(), get_ncbitaxadb_file() + '.traverse.pkl']
+    if args.db in (None, 'taxa') and (args.force or not all(db_present(path) for path in taxa_files)):
         if args.allyes or ask("Download taxa database?") == 'y':
             print(colorify(f'Downloading "eggnog.taxa.db" at {data_path}...', 'green'))
             download_taxa(data_path)
         else:
             print('Skipping')
-    else:
+    elif args.db in (None, 'taxa'):
         if not args.quiet:
             print(colorify('Skipping eggnog.taxa.db database (already present). Use -f to force download', 'lblue'))
             
@@ -284,13 +293,13 @@ if __name__ == "__main__":
     ##
     # Diamond DB
     
-    if not args.skip_diamond and (args.force or not pexists(get_eggnog_dmnd_db(None, SEARCH_MODE_DIAMOND, data_path))):
+    if args.db in (None, 'diamond') and not args.skip_diamond and (args.force or not db_present(get_eggnog_dmnd_db(None, SEARCH_MODE_DIAMOND, data_path))):
         if args.allyes or ask("Download diamond database (~4GB after decompression)?") == 'y':
             print(colorify(f'Downloading fasta files " at {data_path}...', 'green'))
             download_diamond_db(data_path)
         else:
             print('Skipping')
-    else:
+    elif args.db in (None, 'diamond'):
         if not args.quiet:
             print(colorify('Skipping diamond database (or already present). Use -f to force download', 'lblue'))
 

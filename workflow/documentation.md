@@ -357,6 +357,15 @@ resources live under `resources/anvio/kofams/`, `resources/eggnog/`, and
 annotation environment's post-deploy script installs a pinned custom Anvi'o revision that
 supports amino-acid contig databases and requires network access.
 
+Before `emapper` runs, the workflow checks for `eggnog_proteins.dmnd`, `eggnog.db`,
+`eggnog.taxa.db`, and `eggnog.taxa.db.traverse.pkl` in `resources/eggnog/`.
+Missing databases are downloaded automatically from the eggNOG 5 server using
+the database version required by the pinned eggNOG-mapper environment. An existing
+directory or compressed archive does not count as a ready database. Separate
+resource rules reuse the other databases when one is missing; the taxonomy
+database and its traversal file are downloaded together. Failed downloads or
+decompression stop the workflow before annotation.
+
 ## Known limitations
 
 These are implementation issues in the current rules, not additional setup steps.
