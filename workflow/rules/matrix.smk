@@ -50,7 +50,7 @@ rule get_taxonomy:
         taxonomy=lambda wildcards: config["files"]["taxonomy"][wildcards.mapping_db],
         script="workflow/scripts/reformat_taxonomy.py"
     output: 
-        out=temporary("results/{database}/binary/get_taxonomy/{mapping_db}-binary-temp.csv"),
+        out="results/{database}/binary/get_taxonomy/{mapping_db}-binary-temp.csv",
         tax="results/{database}/binary/get_taxonomy/{mapping_db}-taxonomy.csv"
     params:
         split_char=config["create_species_matrix"]["split_char"]

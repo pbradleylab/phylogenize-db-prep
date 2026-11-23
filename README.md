@@ -12,6 +12,27 @@ This workflow expects that you have conda installed prior to starting. Conda is 
 ### Dependencies and Installation
 You will only need to have snakemake installed in an environment. The snakemake version needs to be greater than 7.0 or the workflow won't run since this is enforced internally. You can install a specific version if conda is installing a later version by specifying it like `conda install -c bioconda snakemake=7.0.0`. If this takes a long time you can install mamba into your snakemake environment and use mamba install instead. If you install mamba, then snakemake will internally use mamba to generate the interal environments and install dependencies which can save a lot of time on the inital run.
 
+### Workflow modes
+Set `mode.annotate_only` to `false` for a full protein-catalogue build: the default
+target requests binary and continuous profiles, taxonomy-derived trees, species-linked
+KO annotations, and GO annotations. Set it to `true` to regenerate annotations from
+existing mapping results without scheduling sequence searches, clustering, or profile
+construction. The legacy `annotation.annotate_only` setting is also accepted;
+`mode.annotate_only` takes precedence when both are supplied at the same level.
+An explicit command-line configuration setting overrides the default mode.
+Flags accept JSON booleans or the existing `"True"`/`"False"` strings.
+
+Annotation-only mode requires the combined-hit TSV, full alignment files for each
+target database, de novo representative FASTA, and species/family CSV from the same
+run. The workflow retains the `get_taxonomy/{mapping_db}-binary-temp.csv` species/family
+CSV for this reuse. Missing intermediates stop the run with a configuration error;
+older builds that removed this CSV must regenerate it in full mode first.
+
+In full mode, `files.16S.<mapping_db>.generate_for_16S=true` also requests the final
+16S alignment, pruned tree, and completion marker. It defaults to `false` and is
+ignored in annotation-only mode. These switches select the existing protein-catalogue
+and annotation workflows; raw-genome pangenome construction remains unimplemented.
+
 ## Output Generated
 Binary profiles are written to
 `results/{database}/binary/get_binary/{mapping_db}-binary.rds` as logical sparse

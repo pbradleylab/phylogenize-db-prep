@@ -2,7 +2,19 @@ from glob import glob
 import os, peppy
 
 include: "resources.smk"
-include: "matrix.smk"
+if annotate_only:
+    include: "target.smk"
+else:
+    include: "matrix.smk"
+
+
+def get_annotation_input(wildcards, pattern):
+    out = pattern.format(database=wildcards.database, mapping_db=wildcards.mapping_db,
+        target_db=getattr(wildcards, "target_db", ""))
+    if annotate_only and not os.path.isfile(out):
+        raise ValueError("annotate_only requires an existing mapping intermediate: " + out +
+            ". Run the full workflow first with annotate_only=false.")
+    return out
 
 
 def get_all_links(wildcards):
@@ -25,18 +37,6 @@ def get_fasta(wildcards):
     chunks=get_chunks(wildcards)
     out=expand(rules.break_fasta_apart.output[0]+"/{chunk}.fasta", 
         database=wildcards.database, 
-        mapping_db=wildcards.mapping_db,
-        chunk=chunks)
-    return(out)
-
-def get_ko(wildcards):
-    chunk_dir=checkpoints.break_fasta_apart.get(
-        database=wildcards.database,
-        mapping_db=wildcards.mapping_db).output[0]
-    
-    chunks=[p.stem for p in Path(chunk_dir).glob("*.fasta")]
-    out=expand(rules.link_nodes.output, 
-        database=wildcards.database,
         mapping_db=wildcards.mapping_db,
         chunk=chunks)
     return(out)
@@ -72,7 +72,8 @@ rule make_go_db:
 rule parse_blast:
     input:
         db=rules.make_go_db.output,
-        blast=rules.mmseqs2_convertalis_full_blast.output
+        blast=lambda wildcards: get_annotation_input(wildcards,
+            "results/{database}/clustering/mmseqs2/convertalis_full_blast/{target_db}_{mapping_db}_convertlis.8")
     output:"results/{database}/annotation/parse_blast/{target_db}_{mapping_db}.tsv"
     conda: "../envs/annotation.yml"
     shell:
@@ -86,8 +87,8 @@ rule parse_blast:
 
 rule reannotate_blast_results:
     input:
-        processed_go=rules.parse_blast.output
-        phenotype=rule.download_go_ontology.output
+        processed_go=rules.parse_blast.output,
+        phenotype=rules.download_go_ontology.output
     output:"results/{database}/annotation/reannotate_blast_results/{target_db}_{mapping_db}.tsv"
     conda: "../envs/annotation.yml"
     shell:
@@ -97,8 +98,10 @@ rule reannotate_blast_results:
 
 rule get_fasta_seqs_to_annotate:
     input: 
-        mapped=rules.combine_species_hits.output,
-        clustered=rules.mmseqs2_linclust.output.fasta
+        mapped=lambda wildcards: get_annotation_input(wildcards,
+            "results/{database}/binary/combined_species_hits/{mapping_db}_{database}.tsv"),
+        clustered=lambda wildcards: get_annotation_input(wildcards,
+            "results/{database}/clustering/mmseqs2_linclust/{mapping_db}/unaligned_linclust_rep_seq.fasta")
     output: 
         fasta=temporary("results/{database}/annotation/get_fasta_seqs_to_annotate/{mapping_db}.fasta"),
         mapping=temporary("results/{database}/annotation/get_fasta_seqs_to_annotate/{mapping_db}.txt")
@@ -228,8 +231,10 @@ rule combine_link_info:
 rule link_nodes:
     input:
         seqs=rules.combine_link_info.output,
-        merged=rules.combine_species_hits.output,
-        internal_map=rules.get_taxonomy.output.out
+        merged=lambda wildcards: get_annotation_input(wildcards,
+            "results/{database}/binary/combined_species_hits/{mapping_db}_{database}.tsv"),
+        internal_map=lambda wildcards: get_annotation_input(wildcards,
+            "results/{database}/binary/get_taxonomy/{mapping_db}-binary-temp.csv")
     output:"results/{database}/annotation/link_nodes/{mapping_db}/node_annotations.tsv"
     conda:"../envs/annotation.yml"
     params:
@@ -239,7 +244,7 @@ rule link_nodes:
         """
 
 rule run_annotation:
-    input:get_ko
+    input:rules.link_nodes.output
     output:"results/{database}/annotation/run_anntoation/{mapping_db}.done"
     shell:
         """

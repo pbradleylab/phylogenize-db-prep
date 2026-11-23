@@ -1,36 +1,39 @@
 """ Create databases for phylogenize pipeline. 
 """
 from snakemake.utils import min_version
+from scripts.utils import get_annotate_only, get_config_bool
 min_version("6.0") # Enforces minimum conda version ~
 
-configfile: "../config/config.json"
-configfile: "../config/tools.json"
+# Preserve an explicit command-line mode before loading the default configuration.
+annotate_only_override = get_annotate_only(config, default=None)
+# Config paths are relative to the working directory (the repository root).
+configfile: "config/config.json"
+configfile: "config/tools.json"
+annotate_only = get_annotate_only(config)
+if annotate_only_override is not None:
+    annotate_only = annotate_only_override
 #pepfile: "../" + config["pepfile"]
-#include: "rules/annotation.smk"
+include: "rules/annotation.smk"
 #include: "rules/pangenome.smk"
-include: "rules/prep_16s.smk"
+if not annotate_only:
+    include: "rules/prep_16s.smk"
 
 # Get the list of target databases from config
 TARGET_DBS = list(config["target_db"]["paths"].keys())
 
-# Check which mode we should run the workflow in. Currently the workflow runs in various
-# modes being starting from a pangenome set or starting from a database that is already 
-# clustered and is ready for annotation and to generate the binaries needed to run in
-# Phylogenize.
+# Annotation-only runs reuse existing mapping results; full runs also build profiles.
 def get_final_output(wildcards):
     outputs = []
     for mapping_db in config["files"]["fasta"].keys():
-        #if config["mode"]["pangenome"]["start_with_no_pangenome"] == True:
-        #    outputs.append(rules.make_pangenome_contigs_db.output[0].format(database=config['database']))
+        if not annotate_only:
+            outputs.append(rules.get_binary.output[0].format(database=config['database'], mapping_db=mapping_db))
+            outputs.append(rules.get_tree.output[0].format(database=config['database'], mapping_db=mapping_db))
+            outputs.append(rules.get_continuous.output.rds.format(database=config['database'], mapping_db=mapping_db))
+            options_16s = config["files"].get("16S", {}).get(mapping_db, {})
+            if get_config_bool(options_16s.get("generate_for_16S", False), "files.16S." + mapping_db + ".generate_for_16S"):
+                outputs.append(rules.all_16S.output[0].format(database=config['database'], mapping_db=mapping_db))
 
-        outputs.append(rules.get_binary.output[0].format(database=config['database'], mapping_db=mapping_db))
-        outputs.append(rules.get_tree.output[0].format(database=config['database'], mapping_db=mapping_db))
-        outputs.append(rules.get_continuous.output.rds.format(database=config['database'], mapping_db=mapping_db))
-        
-        # Not yet implemented
-        #if config["files"]["16S"][mapping_db]["generate_for_16S"] == "True":
-        #    outputs.append(rules.get_16s.output[0].format(database=config['database'], mapping_db=mapping_db))
-        #outputs.append(rules.run_annotation.output[0].format(database=config['database'], mapping_db=mapping_db))
+        outputs.append(rules.run_annotation.output[0].format(database=config['database'], mapping_db=mapping_db))
         for target_db in config["target_db"]["paths"].keys():
             outputs.append(rules.reannotate_blast_results.output[0].format(database=config['database'], target_db=target_db, mapping_db=mapping_db)) 
     return(outputs)

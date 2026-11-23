@@ -1,6 +1,5 @@
 include: "query.smk"
 include: "target.smk"
-include: "translation.smk"
 
 # Map the amino acid sequences by similarity in the uniref50 database
 # The internal prefilter module is called which is high sensitivity to
