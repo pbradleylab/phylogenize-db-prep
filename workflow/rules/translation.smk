@@ -11,6 +11,13 @@ def get_pangenomes(wildcards):
     return pangenomes
 
 
+def get_reduce_complexity_input(wildcards):
+    indir = config.get("indir")
+    if not indir:
+        raise ValueError("reduce_complexity requires a non-empty 'indir' in the configuration")
+    return indir
+
+
 # Append the name of the MIDAS identifier to the fron for later parsing.
 rule append_name:
     input: get_pangenomes
@@ -56,12 +63,12 @@ rule combine_fasta_uniref50:
 
 
 rule reduce_complexity:
-     input: config["indir"]
+     input: get_reduce_complexity_input
      output: "results/{database}/combined_fasta/{database}.fa"
      params:
          database="{database}"
      conda:"../envs/translation.yml"
      shell:
          """
-         bash workflow/scripts/reduce_complexity.sh {input} {output} {params.database}
+         bash workflow/scripts/reduce_complexity.sh {input:q} {output:q} {params.database:q}
          """
