@@ -1,0 +1,30 @@
+{
+    "database": "example",
+    "mode": {
+        "annotate_only": false
+    },
+    "files": {
+        "fasta": {
+            "catalogue": "/path/to/protein_catalogue.faa"
+        },
+        "mapping": {
+            "catalogue": "/path/to/protein_members.tsv"
+        },
+        "taxonomy": {
+            "catalogue": "/path/to/genome_metadata.tsv"
+        },
+        "tree": {
+            "catalogue": "/path/to/species_tree.nwk"
+        },
+        "16S": {
+            "catalogue": {
+                "generate_for_16S": false
+            }
+        }
+    },
+    "target_db": {
+        "paths": {
+            "reference": "/path/to/reference_families.faa"
+        }
+    }
+}

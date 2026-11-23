@@ -1,71 +1,184 @@
 # Generation of Protein-Clustered Pangenome Databases
-For looking a species level pangenomic comparisons, it may be of use to have protein-clustered pangenomes in a taxa matrix. It is also easier to manage a matrix of clusters than individual pangenomes; hence why using this while developing pangenomic analysis tools is useful. [Phylogenize](https://bitbucket.org/pbradz/phylogenize) is a tools that allows, as descibed by it's developers, "links genes in microbial genomes to either microbial prevalence in, or specificity for, a given environment, while also taking into account an important potential confounder: the phylogenetic relationships between microbes". Protein level databases are used for the tool, which is why it is important as a compliment to have a way to easily generate new databses to increase its reach easily. We develope this workflow to efficiently work with nucleotides pangenomes to create new databases. We also encourage the community to contribute to this effort by submitting PR requests for databases to include or submitting the final databases generated via this workflow to the developers of Phylogenize or this repository.
 
-## Running The Workflow
-This workflow expects that you have conda installed prior to starting. Conda is very easy to install in general and will allow you to easily install the other dependencies needed in this workflow. Then you will need to download this repository via git clone such as `git clone git@github.com:Kekananen/phylogenize-db-prep.git`.
+This Snakemake workflow prepares species-level gene-family profiles and phylogenetic
+trees for [Phylogenize](https://bitbucket.org/pbradz/phylogenize). It starts with an
+existing clustered protein catalogue, its protein membership table, genome metadata,
+and a source tree. Catalogue proteins are matched to reference protein families;
+unmatched proteins are clustered with MMseqs2 Linclust. The resulting family
+assignments are used to build binary and continuous profiles for each phylum.
 
-1. Edit the config/pepconfig.yml file's `raw_data:` string to be where your files are located at. Make sure to use the full path to avoid any errors. All your files will need to be in the same directory for this workflow. If you have a lot of files, you can symlink them into one directory to avoid taking up any more space. Another assumption if that the files will end with `.ffn`. The files won't be seen if they don't end with this; however you can rename then with the symlink when generated to avoid editing any actual file names prior to running this workflow. 
-2. 
-3. 
-4.
+The workflow also contains KO/GO annotation and optional 16S branches. Their final
+targets are connected, but those branches still have execution issues described in
+the [run guide](workflow/documentation.md#known-limitations). Start with the explicit
+profile targets below. A successful dry run checks dependencies and configuration;
+it does not validate the external tools or the biological contents of your inputs.
+Raw-genome pangenome construction is not implemented in the active workflow.
 
-### Dependencies and Installation
-You will only need to have snakemake installed in an environment. The snakemake version needs to be greater than 7.0 or the workflow won't run since this is enforced internally. You can install a specific version if conda is installing a later version by specifying it like `conda install -c bioconda snakemake=7.0.0`. If this takes a long time you can install mamba into your snakemake environment and use mamba install instead. If you install mamba, then snakemake will internally use mamba to generate the interal environments and install dependencies which can save a lot of time on the inital run.
+## Installation
 
-### Workflow modes
-Set `mode.annotate_only` to `false` for a full protein-catalogue build: the default
-target requests binary and continuous profiles, taxonomy-derived trees, species-linked
-KO annotations, and GO annotations. Set it to `true` to regenerate annotations from
-existing mapping results without scheduling sequence searches, clustering, or profile
-construction. The legacy `annotation.annotate_only` setting is also accepted;
-`mode.annotate_only` takes precedence when both are supplied at the same level.
-An explicit command-line configuration setting overrides the default mode.
-Flags accept JSON booleans or the existing `"True"`/`"False"` strings.
+Clone the branch containing this workflow and run all commands from the repository
+root:
 
-Annotation-only mode requires the combined-hit TSV, full alignment files for each
-target database, de novo representative FASTA, and species/family CSV from the same
-run. The workflow retains the `get_taxonomy/{mapping_db}-binary-temp.csv` species/family
-CSV for this reuse. Missing intermediates stop the run with a configuration error;
-older builds that removed this CSV must regenerate it in full mode first.
+```bash
+git clone --branch dev https://github.com/pbradleylab/phylogenize-db-prep.git
+cd phylogenize-db-prep
+```
 
-In full mode, `files.16S.<mapping_db>.generate_for_16S=true` also requests the final
-16S alignment, pruned tree, and completion marker. It defaults to `false` and is
-ignored in annotation-only mode. These switches select the existing protein-catalogue
-and annotation workflows; raw-genome pangenome construction remains unimplemented.
+Install Conda first, then create a workflow environment. The following versions
+match the environment used to validate the workflow's dry runs:
 
-## Output Generated
-Binary profiles are written to
-`results/{database}/binary/get_binary/{mapping_db}-binary.rds` as logical sparse
-matrices grouped by phylum, with gene families as rows and canonical species IDs
-as columns. The taxonomy preparation step maps each member protein's genome to
-its `Species_rep` and produces unique `cluster,target` pairs. Genome versions are
-normalized only for matching; output IDs and taxonomy underscores are preserved.
-Every source species must be represented, including phyla with a single pair.
-Missing or ambiguous mappings stop the build. Existing four-column binary
-intermediates must be regenerated by `get_taxonomy` before building the matrices.
+```bash
+conda create --name phylogenize-workflow --channel conda-forge --channel bioconda \
+    python=3.13 snakemake=9.16.3 peppy=0.40.8 pandas=2.3.3
+conda activate phylogenize-workflow
+snakemake --version
+```
 
-Continuous gene-family profiles are written to
-`results/{database}/binary/get_binary/get_continuous/{mapping_db}-continuous.rds`,
-with the underlying genome counts and fractions in `{mapping_db}-continuous-full.csv`
-in the same directory. The RDS contains one sparse matrix per phylum: rows are gene
-families, columns are canonical `Species_rep` IDs, and each value is the fraction
-of source genomes in that species containing the family. Multiple proteins from
-the same family count once per genome; absent families have value zero. The rule
-uses the configured protein membership table, source metadata, and combined family
-hits, and runs as part of the default workflow. It requests 8 CPUs and 64 GB of
-memory, caps DuckDB at 16 GB, and builds the matrices in memory after aggregation.
+`peppy` is imported when the rules are loaded, and `pandas` is used by top-hit
+selection in this environment. The `--use-conda` option creates separate environments
+from `workflow/envs/` for the other tools. The first run needs network access and
+disk space for packages and reference data. The root `env.yml` contains older
+Snakemake/Python pins and is not the environment used for the current validation.
 
-Phylogenetic output is written to
-`results/{database}/binary/get_tree/{mapping_db}-tree.rds` as a list of trees named
-by the taxonomy's phylum column. The primary `files.tree` and optional
-`files.alttree.<mapping_db>.tree` are normalized separately using RED, then split
-by phylum. Tip labels are reconciled with canonical taxonomy IDs while preserving
-their version suffixes in the output. Ambiguous IDs, overlapping source trees,
-missing species, and phyla spanning both trees stop the build. The legacy
-alternate-tree name does not override taxonomy phylum names. Direct script calls
-may supply `--allow_missing_species` with an exact audited CSV of missing `cluster`
-IDs; those species remain absent from the phylogenetic output.
+## Prepare the inputs
 
-The final results will be in the `results/your_database_name/final/` all intermediate results are in `results/your_database_name/specific_tool_name`. If there are space limitations and you don't wish to retain any of these files, then in each rule that isn't desired add a `temp(output)` to the output line like: `output: temp(rules.something.output)` and the file will only be generated temporarily for any rules that need it. They will be retained if the rules that require the files as input fail, but will be removed if the all rules requiring the file succeeds.
+For each catalogue, provide the following files. Use uncompressed FASTA files and
+paths without whitespace, since several shell rules do not quote their arguments.
+
+| Input | Required format |
+| --- | --- |
+| Clustered catalogue | Amino-acid FASTA of protein centroids, with unique sequence IDs. |
+| Protein membership | Headerless, two-column TSV: catalogue centroid ID, then member protein ID. |
+| Genome metadata | TSV with a header containing `Genome`, `Species_rep`, and `Lineage`. |
+| Source tree | One Newick tree with branch lengths and tips matching the species representatives. An additional tree can cover a separate set of species. |
+| Reference families | Amino-acid FASTA with the target family IDs used in the output matrices. Supply at least one reference database. |
+
+Member protein IDs must encode the genome ID before a configured delimiter. For
+example, with `split_char` set to `_`, `G001.1_00001` belongs to genome `G001.1`.
+Genome IDs containing `_` need a different delimiter in the member IDs and a matching
+`create_species_matrix.split_char` setting in `config/tools.json`.
+
+See [input formats and matching](workflow/documentation.md#input-formats-and-matching)
+for small examples and the rules for species representatives, taxonomy, and trees.
+The PEP files and `.ffn` translation rules are not required for this catalogue route.
+
+## Configure a run
+
+Copy [config/config.example.json](config/config.example.json) and replace every
+`/path/to/` path with your own:
+
+```bash
+cp config/config.example.json config/config.local.json
+```
+
+The example uses `database: "example"` for the result directory and `catalogue` as the
+catalogue key. It selects full mode, disables 16S, and uses one reference database.
+Keep the catalogue key identical across `files.fasta`, `files.mapping`,
+`files.taxonomy`, and `files.tree`. Change the result paths in the commands below if
+you rename either `example` or `catalogue`.
+
+After editing, choose an unused backup filename, back up the existing default
+configuration, and install your run configuration:
+
+```bash
+cp config/config.json config/config.backup.json
+cp config/config.local.json config/config.json
+python -m json.tool config/config.json > /dev/null
+```
+
+The workflow loads `config/config.json` and `config/tools.json` automatically. Using
+`--configfile` with a different catalogue does not replace the defaults: Snakemake
+merges nested dictionaries, which can leave unwanted catalogues or reference
+databases active. Replacing the default configuration as shown above avoids this.
+See the [configuration reference](workflow/documentation.md#configuration-reference) for
+optional settings and tool parameters.
+
+## Build the profiles and trees
+
+Use explicit output targets to build the profiles without scheduling annotation or
+16S. Start with a dry run:
+
+```bash
+snakemake \
+    results/example/binary/get_binary/catalogue-binary.rds \
+    results/example/binary/get_binary/get_continuous/catalogue-continuous.rds \
+    results/example/binary/get_tree/catalogue-tree.rds \
+    --snakefile workflow/Snakefile --cores 8 --resources mem_mb=64000 --dry-run
+```
+
+After inspecting the planned jobs, run them with Conda environments enabled:
+
+```bash
+snakemake \
+    results/example/binary/get_binary/catalogue-binary.rds \
+    results/example/binary/get_binary/get_continuous/catalogue-continuous.rds \
+    results/example/binary/get_tree/catalogue-tree.rds \
+    --snakefile workflow/Snakefile --cores 8 --resources mem_mb=64000 \
+    --use-conda --rerun-incomplete
+```
+
+The continuous-matrix rule requests 8 CPUs and 64,000 MB of memory. Its DuckDB
+aggregation is capped at 16 GB, but constructing the sparse matrices uses additional
+memory. On a cluster, run Snakemake inside a job with enough allocated memory and
+CPUs; `--resources` limits Snakemake's scheduling and does not allocate cluster
+resources. Large catalogues and reference databases also need substantial disk space.
+
+Always provide explicit file targets or `all`. There is no root `Snakefile`, and
+running the entrypoint without a target does not select the intended aggregate rule.
+
+## Outputs
+
+Paths below are relative to `results/{database}/`; `{mapping_db}` is the catalogue
+key, such as `catalogue` in the example.
+
+| Output | Path |
+| --- | --- |
+| Binary profiles | `binary/get_binary/{mapping_db}-binary.rds` |
+| Continuous profiles | `binary/get_binary/get_continuous/{mapping_db}-continuous.rds` |
+| Continuous counts and fractions | `binary/get_binary/get_continuous/{mapping_db}-continuous-full.csv` |
+| Per-phylum source trees | `binary/get_tree/{mapping_db}-tree.rds` |
+| Canonical species taxonomy | `binary/get_taxonomy/{mapping_db}-taxonomy.csv` |
+| Species/family pairs retained for annotation reuse | `binary/get_taxonomy/{mapping_db}-binary-temp.csv` |
+| Combined centroid/family hits | `binary/combined_species_hits/{mapping_db}_{database}.tsv` |
+
+Each profile RDS contains a named list of sparse matrices, one per phylum. Rows are
+gene families and columns are canonical `Species_rep` IDs. Binary values indicate
+presence in any member genome. Continuous values are the fraction of source genomes
+in the species containing the family; multiple copies in one genome count once.
+Tree RDS files contain a named list of RED-normalized trees for the same taxonomy
+phyla. Genome versions are normalized for matching, while canonical species IDs and
+taxonomy underscores are preserved in the outputs.
+
+There is no automatic `results/{database}/final/` packaging step. Keep the source
+configuration with the output files. See the [output reference](workflow/documentation.md#output-reference)
+for annotation and 16S paths and an R inspection example.
+
+## Annotation and optional 16S
+
+Full mode (`mode.annotate_only: false`) with the explicit `all` target requests
+profiles, trees, KO/GO annotations, and any enabled 16S outputs. Annotation-only mode
+(`mode.annotate_only: true`) requests annotations from existing mapping intermediates
+and stops if those intermediates are missing. It does not rebuild profiles or run
+sequence searches. JSON booleans and the legacy `"True"`/`"False"` strings are accepted;
+the legacy `annotation.annotate_only` key is also supported.
+
+Before running these branches, read the
+[mode instructions](workflow/documentation.md#workflow-modes) and
+[known limitations](workflow/documentation.md#known-limitations). Connecting final
+targets does not resolve the remaining GO download, KO merge, or 16S tool/path issues.
+
+## Troubleshooting and development
+
+Rerun the same command with `--rerun-incomplete` after fixing an interrupted job.
+Check the failing rule, its printed shell command (`--printshellcmds`), and any
+rule-specific files under `logs/{database}/`. Changing the output `database` name
+keeps a new run separate from existing results; retain the same configuration when
+resuming a run. See the [run guide](workflow/documentation.md) for matching errors,
+annotation prerequisites, scratch-directory limitations, and regression checks.
+
 ## Submission Process
-Please contact either [Kathryn Kananen](kananen.13@osu.edu) or [Patrick Bradley](bradley.720@osu.edu) if you wish to submit to the phylogenize databases being used. If you need help transfering the final matrix to us, then please contact [Kathryn Kananen](kananen.13@osu.edu) to help facilitate a transfer of the larger file. 
+
+To discuss contributing a database or transferring large result files, contact
+[Kathryn Kananen](mailto:kananen.13@osu.edu) or
+[Patrick Bradley](mailto:bradley.720@osu.edu). Include the configuration, catalogue and
+reference versions, and the generated profiles, taxonomy, and trees.
