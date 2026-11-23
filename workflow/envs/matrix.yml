@@ -1,16 +1,16 @@
 channels:
-  - anaconda
-  - bioconda
   - conda-forge
+  - bioconda
+  - nodefaults
 dependencies:
-  - polars=1.27.1
-  - r-base=4.4.3
-  - r-matrix
-  - r-ape
-  - r-castor
-  - r-optparse
-  - r-readr
-  - r-dplyr
-  - r-purrr
-  - r-tidyr
-  - r-duckplyr
+  - polars=2.1.0
+  - r-base=4.5.3
+  - r-matrix=1.7_6
+  - r-ape=5.8_1
+  - r-castor=1.8.8
+  - r-optparse=1.8.2
+  - r-readr=2.2.0
+  - r-dplyr=1.2.1
+  - r-purrr=1.2.2
+  - r-tidyr=1.3.2
+  - r-duckplyr=1.2.1

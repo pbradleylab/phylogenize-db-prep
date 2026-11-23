@@ -24,21 +24,22 @@ git clone --branch dev https://github.com/pbradleylab/phylogenize-db-prep.git
 cd phylogenize-db-prep
 ```
 
-Install Conda first, then create a workflow environment. The following versions
-match the environment used to validate the workflow's dry runs:
+Install Conda first, then create the workflow environment from the repository's
+environment file:
 
 ```bash
-conda create --name phylogenize-workflow --channel conda-forge --channel bioconda \
-    python=3.13 snakemake=9.16.3 peppy=0.40.8 pandas=2.3.3
-conda activate phylogenize-workflow
+CONDA_SOLVER=libmamba conda env create --yes --file env.yml
+conda activate phylogenize-pipeline
 snakemake --version
 ```
 
-`peppy` is imported when the rules are loaded, and `pandas` is used by top-hit
-selection in this environment. The `--use-conda` option creates separate environments
-from `workflow/envs/` for the other tools. The first run needs network access and
-disk space for packages and reference data. The root `env.yml` contains older
-Snakemake/Python pins and is not the environment used for the current validation.
+The launcher includes Snakemake, Conda, `peppy`, and `pandas`. The `--use-conda` option
+automatically creates separate environments from `workflow/envs/` for the other
+tools. Successful installations are reused on later runs; changing an environment
+definition creates a new environment. The first run needs network access and disk
+space for packages and reference data. See
+[environment versions and reuse](workflow/documentation.md#environment-versions-and-reuse)
+for the compatibility constraints and installation checks.
 
 ## Prepare the inputs
 

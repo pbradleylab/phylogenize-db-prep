@@ -1,7 +1,8 @@
 channels:
-  - anaconda
-  - bioconda
   - conda-forge
+  - bioconda
+  - nodefaults
 dependencies:
+  # The setup rule requires install.data.figshare(), removed in Phylogenize 2.
   - phylogenize=0.91
-  - r-optparse=1.3.2
+  - r-optparse=1.7.3

@@ -1,8 +1,8 @@
 name: pipeline
 channels:
-  - anaconda
-  - bioconda
   - conda-forge
-  - zhaoc1
+  - bioconda
+  - nodefaults
 dependencies:
+  # MIDAS 1.3.2 is the latest release of the legacy run_midas.py tool.
   - midas=1.3.2

@@ -177,6 +177,72 @@ is not passed to Linclust; editing it does not change the clustering threshold.
 The continuous rule currently fixes its request at 8 CPUs and 64,000 MB and passes
 `--memory 16 --speedy TRUE` to its R script.
 
+## Environment versions and reuse
+
+The launcher selects the libmamba solver and strict channel priority when activated.
+The environment files use conda-forge followed by Bioconda and exclude implicit
+default channels with `nodefaults`. The tracked MIDAS 2 test environment also uses
+the package author's `zhaoc1` channel. Versions were checked against Linux package
+metadata and solved with strict channel priority on 2026-11-23.
+
+| Environment | Selected versions and compatibility constraints |
+| --- | --- |
+| Root `env.yml` | Python 3.14.10, Snakemake 9.27.2, interface-common 1.23.0, Conda 26.7.3, eido 0.2.6, peppy 0.40.8, and pandas below 3. Newer Conda and interface-common releases require `packaging >=26`, while this Snakemake release requires `packaging <26`. |
+| Query, target, mapping, clustering, and target-download environments | MMseqs2 20.ae60e throughout, so database creation, search, and conversion use the same version. Mapping also supplies samtools 1.25; clustering supplies `faSomeRecords` 502. |
+| Matrix | Polars 2.1.0, R 4.5.3, Matrix 1.7-6, castor 1.8.8, and duckplyr 1.2.1. The current compatible R package builds select R 4.5. |
+| Anvi'o annotation | The amino-acid-contig fork requires Python 3.10, NumPy 1.24.1, pandas 1.4.4, matplotlib 3.5.1, scikit-learn 1.2.2, and PuLP 2.7.0. Setuptools 81 retains its required `pkg_resources` module. Those constraints are retained; the surrounding packages use current compatible releases. |
+| eggNOG/GO | eggNOG-mapper 2.1.15 and GOATOOLS 1.6.9. GOATOOLS is installed from PyPI because Bioconda's older release requires an Excel reader incompatible with current pandas. DIAMOND below 2.1 requires the older zlib ABI, so this separate environment uses compatible wget 1.21.4 and pandas 2.3.3. Its transitive MMseqs2 installation is separate from the main workflow's MMseqs2 databases. |
+| 16S | PASTA 1.9.3, FastTree 2.2.0, vsearch 2.32.0, Biopython 1.88, and GFF3 1.0.1, plus the R packages imported by the filtering scripts. Tree-fixing, rescaling, and pruning rules activate this environment too. |
+| Phylogenetics | Phylogenize 0.91 and optparse 1.7.3 preserve the existing `install.data.figshare()` setup API and its R 4.1 package builds. Phylogenize 2.0.4 replaces that downloader with `install_data(path)`, which requires a local archive; migrating the setup rule is a separate change. |
+| Translation | EMBOSS 6.6.0, its current release, and BBMap 40.05. |
+| Legacy tests | MIDAS 1.3.2 and MIDAS 2 1.1.3 remain the latest stable releases of their respective tools. MIDAS 2 release candidates are not selected. The read-processing environment uses the current Snakemake, fastp, Kraken2, and Bracken packages. |
+
+Anvi'o and eggNOG are separate because their Python and compiled-library
+requirements differ. The Anvi'o post-deployment hook installs the exact custom
+revision `21aad5f33a2c3c2c1e48f428dda08a0ef86673c0` without prompts or dependency
+replacement; its Python and build dependencies are supplied by `annotation.yml`.
+The hook checks that Anvi'o imports successfully before finishing. It runs only
+when Snakemake creates that environment. The workflow relies on the fork's commands
+and `--allow-amino-acid-contig-db` option; moving to a public Anvi'o release requires
+validating that interface separately.
+Its Python 3.10 dependency stack includes Snakemake 7.32.4; the workflow launcher
+uses Snakemake 9.27.2 from the root environment.
+Creating `annotation.yml` with Conda alone prepares the dependencies; Snakemake
+runs the post-deployment hook that installs the custom Anvi'o package.
+
+Install the root environment once, then activate it before running the workflow.
+For an existing launcher environment, update it from the base environment instead
+of attempting to create the same name again:
+
+```bash
+CONDA_SOLVER=libmamba CONDA_ALWAYS_YES=true conda env update --name phylogenize-pipeline --file env.yml --prune
+conda activate phylogenize-pipeline
+```
+
+Use the actual environment name if your launcher was created with a different one.
+Snakemake caches rule environments under `.snakemake/conda/` and reuses them across
+runs. Keep that directory to avoid repeating installation. Changes to YAML files
+or post-deployment hooks trigger a new environment; a failed installation must be
+retried. Package and reference-data installation are separate: the annotation
+resource rules retain their downloads under `resources/`.
+
+After configuring the input files, software environments can be prepared before
+starting the analysis. In full mode, this creates the environments needed by the
+`all` target and runs their post-deployment hooks without executing analysis jobs:
+
+```bash
+snakemake all --snakefile workflow/Snakefile --cores 8 \
+    --resources mem_mb=64000 --use-conda --conda-create-envs-only
+```
+
+Normal runs then reuse those environments. This command prepares software;
+annotation reference-data downloads are still handled by the resource rules.
+
+After an environment upgrade, use a new `database` label for a fresh build or inspect
+Snakemake's proposed reruns carefully. Existing results and MMseqs2 database files
+can have been produced with older tools. Do not mix old database indexes with a
+new MMseqs2 executable manually.
+
 ## Workflow modes
 
 ### Profiles and source trees
@@ -288,7 +354,7 @@ Additional outputs, when their branches succeed, are relative to
 The spellings `run_anntoation` and `convertlis` match the current rules. Annotation
 resources live under `resources/anvio/kofams/`, `resources/eggnog/`, and
 `resources/go_ontology/`. They are shared across runs in the same checkout. The
-annotation environment's post-deploy script installs a custom Anvi'o branch that
+annotation environment's post-deploy script installs a pinned custom Anvi'o revision that
 supports amino-acid contig databases and requires network access.
 
 ## Known limitations
@@ -304,7 +370,7 @@ A dry run can succeed without exercising them.
 | GO term annotation | `reannotate_blast_results` calls `workflow/scripts/annotate_go_terms.py`, which is absent from the tracked repository. A clean checkout cannot complete that rule. |
 | GO filtering | `make_go_db` filters every line containing `-`, which can also discard valid identifiers. |
 | KO merging | `combine_link_info` uses `{input}[0]` instead of indexing the first input file, so header extraction can fail. |
-| Optional 16S | Several rules invoke `scripts/...` from the repository root instead of `workflow/scripts/...`; PASTA/FastTree and some script dependencies are not supplied consistently by the selected environments. The taxonomy filter also needs review for missing matches and duplicate filtering. |
+| Optional 16S | Several rules invoke `scripts/...` from the repository root instead of `workflow/scripts/...`. The taxonomy filter also needs review for missing matches and duplicate filtering. The environment supplies the required tools, but those path and processing issues still need fixes. |
 | Raw genomes | The pangenome include is disabled, PEP initialization is commented out, and there is no active raw-genome aggregate path. Use an existing protein catalogue. |
 
 The example and README profile commands avoid scheduling GO, KO, and 16S. They still
@@ -344,11 +410,14 @@ python -B -m unittest discover -s test -p test_workflow_modes.py -v
 ```
 
 The mode checks create temporary inputs and run Snakemake dry runs; they do not run
-MMseqs2 or annotation tools. To run the binary, continuous, and tree checks, create
+MMseqs2 or annotation tools. `test/test_clustering.py` also checks database creation,
+Linclust representative/member output, and literal FASTA IDs when MMseqs2 and
+`faSomeRecords` are available on `PATH` alongside Python. To run the binary,
+continuous, and tree checks, create
 the matrix environment and provide its executables to the test process:
 
 ```bash
-conda env create --name phylogenize-matrix --file workflow/envs/matrix.yml
+conda env create --yes --name phylogenize-matrix --file workflow/envs/matrix.yml
 conda run --no-capture-output --name phylogenize-matrix \
     python -B -m unittest discover -s test -p test_binary_matrices.py -v
 conda run --no-capture-output --name phylogenize-matrix \

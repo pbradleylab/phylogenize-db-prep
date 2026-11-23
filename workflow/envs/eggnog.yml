@@ -1,0 +1,14 @@
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - eggnog-mapper=2.1.15
+  - pandas=2.3.3
+  - pip=26.2.1
+  - setuptools=84.0.0
+  # DIAMOND <2.1 requires an older zlib, so select a compatible wget build.
+  - wget=1.21.4
+  # Bioconda's older GOATOOLS requires xlrd 1.2, incompatible with current pandas.
+  - pip:
+      - goatools==1.6.9

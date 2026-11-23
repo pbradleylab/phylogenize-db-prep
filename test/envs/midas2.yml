@@ -1,8 +1,9 @@
 name: pipeline
 channels:
-  - anaconda
-  - bioconda
   - conda-forge
+  - bioconda
   - zhaoc1
+  - nodefaults
 dependencies:
+  # Keep the latest stable release; 2.0.0.rc3 is a release candidate.
   - midas2=1.1.3

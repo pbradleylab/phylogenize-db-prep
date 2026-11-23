@@ -1,7 +1,7 @@
 channels:
-  - anaconda
-  - bioconda
   - conda-forge
+  - bioconda
+  - nodefaults
 dependencies:
-  - mmseqs2=17.b804f
-  - ucsc-fasomerecords=469
+  - mmseqs2=20.ae60e
+  - ucsc-fasomerecords=502

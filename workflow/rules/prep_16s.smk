@@ -82,6 +82,7 @@ rule make_16S_tree:
 rule fix_16S_tree_file:
     input: "results/{database}/16S/{mapping_db}-pasta/pastajob.tre"
     output: "results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-unpruned-tree.phy"
+    conda: "../envs/16S.yml"
     shell: "scripts/fix_tree_file.py -i {input} -o {output}"
 
 rule fix_aln_file:
@@ -95,11 +96,13 @@ rule rescale_16S_tree:
         phy="results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-unpruned-tree.phy",
         aln="results/{database}/16S/{mapping_db}-final/{mapping_db}-alignment.aln"   
     output: "results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-rescaled-tree.phy"
+    conda: "../envs/16S.yml"
     shell: "FastTree -nosupport -nt -nome -noml -intree {input.phy} < {input.aln} > {output}"
 
 rule prune_16S_tree:
     input: "results/{database}/16S/{mapping_db}-pasta-2/{mapping_db}-rescaled-tree.phy"
     output: "results/{database}/16S/{mapping_db}-final/{mapping_db}-tree.phy"
+    conda: "../envs/16S.yml"
     shell: "scripts/filter_inconsistent_tips.R -i {input} -o {output} -d '____'"
 
 

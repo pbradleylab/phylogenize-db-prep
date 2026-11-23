@@ -49,7 +49,7 @@ rule emapper:
     params:
         prefix="go_annotations",
         go_evidence=config["emapper"]["go_evidence"]
-    conda: "../envs/annotation.yml"
+    conda: "../envs/eggnog.yml"
     threads:config["emapper"]["threads"]
     shell:
         """
@@ -75,7 +75,7 @@ rule parse_blast:
         blast=lambda wildcards: get_annotation_input(wildcards,
             "results/{database}/clustering/mmseqs2/convertalis_full_blast/{target_db}_{mapping_db}_convertlis.8")
     output:"results/{database}/annotation/parse_blast/{target_db}_{mapping_db}.tsv"
-    conda: "../envs/annotation.yml"
+    conda: "../envs/eggnog.yml"
     shell:
         """
         python workflow/scripts/parse_blast.py \
@@ -90,7 +90,7 @@ rule reannotate_blast_results:
         processed_go=rules.parse_blast.output,
         phenotype=rules.download_go_ontology.output
     output:"results/{database}/annotation/reannotate_blast_results/{target_db}_{mapping_db}.tsv"
-    conda: "../envs/annotation.yml"
+    conda: "../envs/eggnog.yml"
     shell:
         """
         python workflow/scripts/annotate_go_terms.py --obo {input.phenotype} --go_ids {input.processed_go} --out {output} 

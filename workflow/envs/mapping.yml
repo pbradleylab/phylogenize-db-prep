@@ -1,8 +1,7 @@
 channels:
-  - anaconda
-  - bioconda
   - conda-forge
+  - bioconda
+  - nodefaults
 dependencies:
-  - mmseqs2=14.7e284
-  - samtools=1.17
-  - conda-forge::ncurses=6.4
+  - mmseqs2=20.ae60e
+  - samtools=1.25

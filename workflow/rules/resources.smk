@@ -25,7 +25,7 @@ rule anvio_setup_kegg_kofams:
 
 rule download_diamond:
    output:directory("resources/eggnog/")
-   conda:"../envs/annotation.yml"
+   conda:"../envs/eggnog.yml"
    shell:
        """
        mkdir -p {output}
@@ -34,7 +34,7 @@ rule download_diamond:
 
 rule download_go_ontology:
     output:"resources/go_ontology/obo/go.obo"
-    conda:"../envs/annotation.yml"
+    conda:"../envs/eggnog.yml"
     shell:
         """
         mkdir $(dirname {output})
