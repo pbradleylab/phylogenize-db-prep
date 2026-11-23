@@ -49,7 +49,8 @@ rule mmseqs2_convertalis_full_blast:
 rule get_top_50_evals:
      input: 
          corrected=rules.mmseqs2_convertalis.output.blast,
-         full=rules.mmseqs2_convertalis_full_blast.output
+         full=rules.mmseqs2_convertalis_full_blast.output,
+         script="workflow/scripts/get_top_hits.py"
      output:
          unfiltered="results/{database}/clustering/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis.tsv",
          tophits="results/{database}/clustering/mmseqs2/top_50/{target_db}_{mapping_db}_convertlis_tophits.tsv"
@@ -59,7 +60,7 @@ rule get_top_50_evals:
          """
          touch {output.unfiltered}
          awk '$3>50 {{print}}' {input.corrected} > {output.unfiltered}
-         python workflow/scripts/get_top_hits.py -i {output.unfiltered} -o {output.tophits}
+         python {input.script:q} -i {output.unfiltered:q} -o {output.tophits:q}
          """
 
 # Extract sequences that didn't map for next iteration

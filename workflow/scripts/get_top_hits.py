@@ -2,7 +2,11 @@ import pandas as pd
 import argparse
 
 def main(args):
-        frame = pd.read_csv(args.input, sep='\t')
+        # Sequence IDs are literal labels, including leading zeros and names such as NA.
+        frame = pd.read_csv(
+            args.input, sep='\t',
+            dtype={"query": str, "target": str}, keep_default_na=False,
+        )
         print(frame)
         frame["pident"] = pd.to_numeric(frame["pident"])
         frame = frame.loc[frame.groupby(["query"])["pident"].idxmax()]
