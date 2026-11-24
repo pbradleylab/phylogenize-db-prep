@@ -168,12 +168,23 @@ Tool settings remain in [config/tools.json](../config/tools.json):
 | `mmseqs2.map.threads`, `mmseqs2.map.sensitivity` | Search CPU request and MMseqs2 sensitivity arguments. |
 | `mmseqs2.convertalis.threads` | CPU request for conversion rules. |
 | `mmseqs2.linclust.threads`, `mmseqs2.linclust.tmp_dir` | Linclust CPU request and scratch directory. |
+| `mmseqs2.linclust.seq_id_precent` | Minimum Linclust sequence identity as a fraction in `[0, 1]`; the existing key spelling is retained. Defaults to `0.0`. |
+| `mmseqs2.linclust.coverage`, `mmseqs2.linclust.cov_mode` | Minimum alignment coverage (default `0.8`) and MMseqs2 coverage mode (default `0`, covering both proteins). |
+| `mmseqs2.linclust.evalue` | Maximum Linclust E-value; defaults to `0.001`. |
 | `anvio.contigs_db.threads`, `anvio.run_kegg_annotations.threads` | CPU requests for the KO branch. |
 | `emapper.threads`, `emapper.go_evidence` | CPU request and GO evidence selection for eggNOG-mapper. |
 
 Snakemake caps declared threads at the available `--cores`. Not every tool uses its
-rule's thread count explicitly. The legacy `mmseqs2.linclust.seq_id_precent` setting
-is not passed to Linclust; editing it does not change the clustering threshold.
+rule's thread count explicitly. Linclust identity, coverage, coverage mode, and
+E-value are validated and passed explicitly to MMseqs2. The shipped values preserve
+the MMseqs2 20 defaults. Identity `0.0` imposes no explicit identity minimum;
+coverage and statistical significance still constrain clustering. To pilot 50%
+identity, set `mmseqs2.linclust.seq_id_precent` to `0.5`. Coverage mode must be an
+integer from `0` to `5`; mode `0` is suitable for full-length proteins, while mode
+`1` measures member coverage and mode `2` measures representative coverage.
+Changing these criteria can change de novo family membership and representative
+IDs. Use a new run label for comparisons and rebuild the affected profiles and
+annotation links together; the earlier reference searches need not be repeated.
 The continuous rule currently fixes its request at 8 CPUs and 64,000 MB and passes
 `--memory 16 --speedy TRUE` to its R script.
 

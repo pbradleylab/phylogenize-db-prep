@@ -16,6 +16,9 @@
         "linclust":{
             "threads":40,
             "seq_id_precent":0.0,
+            "coverage":0.8,
+            "cov_mode":0,
+            "evalue":0.001,
             "tmp_dir":"tmp90"
         }
     },

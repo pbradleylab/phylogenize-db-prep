@@ -1,6 +1,9 @@
+from scripts.utils import get_linclust_settings
+
 include: "mapping.smk"
 
 TARGET_DBS = list(config["target_db"]["paths"].keys())
+LINCLUST_SETTINGS = get_linclust_settings(config)
 
 # Convert mmseqs results to blast format
 rule mmseqs2_convertalis:
@@ -104,12 +107,18 @@ rule mmseqs2_linclust:
         fasta="results/{database}/clustering/mmseqs2_linclust/{mapping_db}/unaligned_linclust_rep_seq.fasta"
     params:
         prefix="unaligned_linclust",
-        tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"]
+        tmp_dir=config["mmseqs2"]["linclust"]["tmp_dir"],
+        min_seq_id=LINCLUST_SETTINGS["min_seq_id"],
+        coverage=LINCLUST_SETTINGS["coverage"],
+        cov_mode=LINCLUST_SETTINGS["cov_mode"],
+        evalue=LINCLUST_SETTINGS["evalue"]
     conda: "../envs/clustering.yml"
     log: "logs/{database}/clustering/mmseqs2_linclust/{mapping_db}/mmseqs2_linclust.log"
     threads: config["mmseqs2"]["linclust"]["threads"]
     shell:
         """
-        mmseqs easy-linclust {input} {output.outdir}/{params.prefix} \
-            {params.tmp_dir} --threads {threads} 2> {log}
+        mmseqs easy-linclust {input:q} {output.outdir:q}/{params.prefix:q} \
+            {params.tmp_dir:q} --threads {threads} \
+            --min-seq-id {params.min_seq_id} -c {params.coverage} \
+            --cov-mode {params.cov_mode} -e {params.evalue} 2> {log:q}
         """
