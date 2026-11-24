@@ -273,14 +273,14 @@ snakemake all --snakefile workflow/Snakefile --cores 8 \
 ```
 
 The `all` target requests binary profiles, continuous profiles, source-tree RDS,
-species-linked KO annotations, and GO annotations for every catalogue/reference
-combination. If 16S is enabled for a catalogue, it also requests the final 16S
+species-linked KO and GO annotations for every catalogue. If 16S is enabled for
+a catalogue, it also requests the final 16S
 alignment and tree through the completion marker. Use the explicit `all` target:
 the first included rule is not this aggregate rule.
 
 Read the known limitations below before replacing `--dry-run` with
-`--use-conda --rerun-incomplete`. The full aggregate target is not currently a
-validated end-to-end annotation run.
+`--use-conda --rerun-incomplete`. Regression tests exercise the annotation handoffs
+using small saved search outputs; they do not validate production-scale searches.
 
 ### Annotation only
 
@@ -298,7 +298,6 @@ producer rules. It requires these files from the original mapping run:
 | Combined centroid/family TSV | `binary/combined_species_hits/{mapping_db}_{database}.tsv` |
 | Species/family CSV | `binary/get_taxonomy/{mapping_db}-binary-temp.csv` |
 | De novo representatives | `clustering/mmseqs2_linclust/{mapping_db}/unaligned_linclust_rep_seq.fasta` |
-| Full alignment for each reference | `clustering/mmseqs2/convertalis_full_blast/{target_db}_{mapping_db}_convertlis.8` |
 
 Keep the original `database`, catalogue/reference keys, reference FASTAs, and mapping
 intermediates together. Missing files cause an `annotate_only requires an existing
@@ -306,6 +305,61 @@ mapping intermediate` error. Earlier builds that deleted the species/family CSV
 must regenerate it in full mode. Existing annotation outputs are reused by
 Snakemake when up to date; selecting annotation-only mode does not force a rerun.
 This mode may still download annotation resources and run annotation tools.
+
+### Chunked eggNOG annotation
+
+The KO and eggNOG branches share `break_fasta_apart`, which splits the selected
+representative proteins into 10,000-sequence FASTA chunks. These representatives
+include the reference families used by each catalogue and its de novo families.
+`emapper` runs separately on each chunk, using `emapper.threads` CPUs per job
+(capped by available cores), with separate output directories and logs. It does
+not annotate each entire reference FASTA. Snakemake can schedule multiple chunks
+within the available cores, and completed chunks are reused on subsequent runs.
+
+`combine_emapper` restores the original family identifiers using the same header
+mappings as KO, then merges the chunk annotations with one column header. Family
+GO annotations are exported directly from this result and linked to the species
+pairs used by the matrices. This includes de novo families without a second
+alignment-based transfer. Per-chunk logs are saved under
+`logs/{database}/annotation/emapper/{mapping_db}/{chunk}.log`.
+
+### Annotation handoffs
+
+Representative selection writes one sequence for every final family. Identical
+copies of the same ID across references are deduplicated; conflicting sequences
+for one ID and missing representatives stop the run. Reruns replace the selected
+FASTA rather than appending to it. Anvi'o's explicit rename report restores family
+IDs after chunking, and gene-call IDs restart at zero within each chunk.
+
+KO exports are joined by named columns after checking that gene calls and header
+mappings contain the same IDs. Chunk results are combined with one header, including
+chunks with no KO hits. The final linkage joins family annotations directly to the
+`cluster,target` pairs used by the matrices. Unknown family IDs and conflicting
+centroid assignments cause errors rather than disappearing in an inner join.
+Leading zeros, literal `NA` identifiers, and multiple annotations are preserved.
+
+GO outputs include a tab-separated family table (`node_head,accession,function,aspect`)
+and an evidence table retaining original GO IDs, ontology status, annotation source,
+GO evidence selection, seed ortholog, seed E-value, seed score, and ontology version.
+Alternative GO IDs resolve to the ontology's primary ID. Unknown and obsolete terms
+remain in the evidence table but are excluded from the functional tables. BP, MF,
+and CC assignments are retained without automatic ancestor expansion. Seed scores
+describe the ortholog match; they are not calibrated GO confidence probabilities.
+Transferred GO annotations remain predictions for the query proteins, including
+when `non-electronic` donor evidence is selected.
+
+Both species-linked outputs use the existing Phylogenize **comma-separated** format
+with `linker_info,node_head,accession,function`, despite the historical `.tsv` suffix.
+Here `linker_info` is the canonical species ID and `node_head` is the matrix family
+ID. Species/family pairs without an annotation have no function row. Header-only
+outputs are valid when no annotations are found. The completion marker requires
+both KO and GO outputs; exporting GO does not enable downstream GO enrichment.
+
+The older per-reference GO transfer targets remain available when explicitly
+requested. They additionally require the saved full alignments under
+`clustering/mmseqs2/convertalis_full_blast/`. Their term-description output now
+preserves the query, GO ID, and relative support score from each prediction triple.
+They are not required by `all` or annotation-only completion.
 
 ### Optional 16S
 
@@ -355,9 +409,15 @@ Additional outputs, when their branches succeed, are relative to
 | Output | Path |
 | --- | --- |
 | Species-linked KO annotations | `annotation/link_nodes/{mapping_db}/node_annotations.tsv` |
-| KO completion marker | `annotation/run_anntoation/{mapping_db}.done` |
-| GO prediction triples before term annotation | `annotation/parse_blast/{target_db}_{mapping_db}.tsv` |
-| GO term annotations | `annotation/reannotate_blast_results/{target_db}_{mapping_db}.tsv` |
+| Species-linked GO annotations | `annotation/link_go_nodes/{mapping_db}/node_annotations.tsv` |
+| KO and GO completion marker | `annotation/run_anntoation/{mapping_db}.done` |
+| Per-chunk eggNOG annotations, with Anvi'o sequence IDs | `annotation/emapper/{mapping_db}/{chunk}/go_annotations.emapper.annotations` |
+| Combined eggNOG annotations, with original family IDs | `annotation/combine_emapper/{mapping_db}/go_annotations.emapper.annotations` |
+| Family/GO lookup table | `annotation/make_go_db/{mapping_db}.3` |
+| Direct family/GO annotations | `annotation/export_go_annotations/{mapping_db}/family_annotations.tsv` |
+| GO evidence and ontology status | `annotation/export_go_annotations/{mapping_db}/evidence.tsv` |
+| Optional legacy GO prediction triples | `annotation/parse_blast/{target_db}_{mapping_db}.tsv` |
+| Optional legacy GO term annotations | `annotation/reannotate_blast_results/{target_db}_{mapping_db}.tsv` |
 | Final 16S alignment | `16S/{mapping_db}-final/{mapping_db}-alignment.aln` |
 | Final 16S tree | `16S/{mapping_db}-final/{mapping_db}-tree.phy` |
 | 16S completion marker | `16S/.{mapping_db}.complete` |
@@ -377,6 +437,9 @@ resource rules reuse the other databases when one is missing; the taxonomy
 database and its traversal file are downloaded together. Failed downloads or
 decompression stop the workflow before annotation.
 
+The GO ontology is downloaded automatically to `resources/go_ontology/obo/go.obo`
+when missing. Its download rule can reuse an existing parent directory.
+
 ## Known limitations
 
 These are implementation issues in the current rules, not additional setup steps.
@@ -386,10 +449,6 @@ A dry run can succeed without exercising them.
 | --- | --- |
 | Shared mapping scratch | `combine_species_hits` appends to `/tmp/{mapping_db}.1` before deduplication. An interrupted run or concurrent run using the same catalogue key can contaminate assignments. Confirm no active job is using the scratch file before dealing with leftovers; changing only `database` does not isolate this path. |
 | Empty unmapped set | `faSomeRecords` uses `grep` under strict shell handling, and Linclust has no explicit empty-input branch. A run in which all queries map can stop instead of producing an empty de novo result. |
-| GO resource download | `download_go_ontology` reverses the `wget -O` arguments and uses `mkdir` without `-p`; resource setup can fail. |
-| GO term annotation | `reannotate_blast_results` calls `workflow/scripts/annotate_go_terms.py`, which is absent from the tracked repository. A clean checkout cannot complete that rule. |
-| GO filtering | `make_go_db` filters every line containing `-`, which can also discard valid identifiers. |
-| KO merging | `combine_link_info` uses `{input}[0]` instead of indexing the first input file, so header extraction can fail. |
 | Optional 16S | Several rules invoke `scripts/...` from the repository root instead of `workflow/scripts/...`. The taxonomy filter also needs review for missing matches and duplicate filtering. The environment supplies the required tools, but those path and processing issues still need fixes. |
 | Raw genomes | The pangenome include is disabled, PEP initialization is commented out, and there is no active raw-genome aggregate path. Use an existing protein catalogue. |
 

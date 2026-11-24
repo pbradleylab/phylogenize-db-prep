@@ -3,5 +3,6 @@ channels:
   - bioconda
   - nodefaults
 dependencies:
+  - python=3.14.10
   - mmseqs2=20.ae60e
   - ucsc-fasomerecords=502

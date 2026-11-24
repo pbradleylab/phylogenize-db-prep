@@ -7,11 +7,12 @@ and a source tree. Catalogue proteins are matched to reference protein families;
 unmatched proteins are clustered with MMseqs2 Linclust. The resulting family
 assignments are used to build binary and continuous profiles for each phylum.
 
-The workflow also contains KO/GO annotation and optional 16S branches. Their final
-targets are connected, but those branches still have execution issues described in
-the [run guide](workflow/documentation.md#known-limitations). Start with the explicit
-profile targets below. A successful dry run checks dependencies and configuration;
-it does not validate the external tools or the biological contents of your inputs.
+The workflow also contains KO/GO annotation and optional 16S branches. KO and GO
+annotations retain the family and species identifiers used in the profiles, including
+de novo families. The optional 16S branch still has execution issues described in
+the [run guide](workflow/documentation.md#known-limitations). A successful dry run
+checks dependencies and configuration; it does not validate the external tools or
+the biological contents of your inputs.
 Raw-genome pangenome construction is not implemented in the active workflow.
 
 ## Installation
@@ -164,9 +165,11 @@ sequence searches. JSON booleans and the legacy `"True"`/`"False"` strings are a
 the legacy `annotation.annotate_only` key is also supported.
 
 Before running these branches, read the
-[mode instructions](workflow/documentation.md#workflow-modes) and
-[known limitations](workflow/documentation.md#known-limitations). Connecting final
-targets does not resolve the remaining GO download, KO merge, or 16S tool/path issues.
+[mode instructions](workflow/documentation.md#workflow-modes),
+[annotation output formats](workflow/documentation.md#annotation-handoffs), and
+[known limitations](workflow/documentation.md#known-limitations). The annotation
+completion marker requires both species-linked KO and GO files. GO evidence is
+exported separately; downstream GO enrichment requires support in the analysis tool.
 
 ## Troubleshooting and development
 

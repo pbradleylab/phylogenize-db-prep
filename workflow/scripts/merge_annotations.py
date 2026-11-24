@@ -1,23 +1,41 @@
-import pandas as pd
+"""Join exported KOfam annotations to a chunk's literal family identifiers."""
+
 import argparse
+import csv
+
+from annotation_io import read_table
 
 
-# Read in the arguments
-parser = argparse.ArgumentParser(description="Merge anvio function and gene calls together to make an annotated fasta")
-parser.add_argument('functions', help='functions file')
-parser.add_argument('gene_calls', help='gene calls')
-parser.add_argument('linker', help='linker')
-parser.add_argument('output', help='merged file')
-args = parser.parse_args()
+KO_COLUMNS = ["gene_callers_id", "linker_info", "accession", "function"]
 
-# merge the files together by the gene calling id
-functions=pd.read_csv(args.functions, sep='\t')
-genecalls=pd.read_csv(args.gene_calls, sep='\t')
-linker=pd.read_csv(args.linker, sep='\t')
 
-merged=pd.merge(functions, genecalls, on="gene_callers_id")
-merged=pd.merge(merged, linker, on="gene_callers_id")
-filt=merged[merged["source_x"]=="KOfam"]
-filt=filt[["gene_callers_id","linker_info", "accession","function"]]
+def merge_annotations(functions, gene_calls, linker, output):
+    calls = [row["gene_callers_id"] for row in read_table(gene_calls, ["gene_callers_id"])]
+    families = {}
+    for row in read_table(linker, ["gene_callers_id", "linker_info"]):
+        if row["gene_callers_id"] in families:
+            raise ValueError("Duplicate gene ID in family mapping")
+        families[row["gene_callers_id"]] = row["linker_info"]
+    if len(set(calls)) != len(calls) or set(calls) != families.keys():
+        raise ValueError("Gene calls and family mapping have different gene IDs")
+    with open(output, "w", newline="") as handle:
+        writer = csv.writer(handle, delimiter="\t", lineterminator="\n")
+        writer.writerow(KO_COLUMNS)
+        seen = set()
+        for row in read_table(functions, ["gene_callers_id", "source", "accession", "function"]):
+            if row["gene_callers_id"] not in families:
+                raise ValueError(f"Annotation refers to unknown gene ID {row['gene_callers_id']!r}")
+            if row["source"] != "KOfam":
+                continue
+            record = (row["gene_callers_id"], families[row["gene_callers_id"]], row["accession"], row["function"])
+            if record not in seen:
+                writer.writerow(record)
+                seen.add(record)
 
-filt.to_csv(args.output, index=False, sep="\t")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    for name in ["functions", "gene_calls", "linker", "output"]:
+        parser.add_argument(name)
+    args = parser.parse_args()
+    merge_annotations(args.functions, args.gene_calls, args.linker, args.output)

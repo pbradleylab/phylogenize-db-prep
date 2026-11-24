@@ -68,6 +68,6 @@ rule download_go_ontology:
     conda:"../envs/eggnog.yml"
     shell:
         """
-        mkdir $(dirname {output})
-        wget -O http://purl.obolibrary.org/obo/go.obo {output}
+        mkdir -p "$(dirname {output:q})"
+        wget -O {output:q} https://purl.obolibrary.org/obo/go.obo
         """

@@ -48,7 +48,7 @@ class FinalTargetTests(unittest.TestCase):
             "get_binary": "results/{database}/binary/get_binary/{mapping_db}-binary.rds",
             "get_tree": "results/{database}/binary/get_tree/{mapping_db}-tree.rds",
             "run_annotation": "results/{database}/annotation/run_anntoation/{mapping_db}.done",
-            "reannotate_blast_results": "results/{database}/annotation/reannotate_blast_results/{target_db}_{mapping_db}.tsv",
+            "link_go_nodes": "results/{database}/annotation/link_go_nodes/{mapping_db}/node_annotations.tsv",
             "all_16S": "results/{database}/16S/.{mapping_db}.complete",
         }
         rules = SimpleNamespace(**{
@@ -80,7 +80,7 @@ class FinalTargetTests(unittest.TestCase):
             self.assertIn(f"results/mode-test/binary/get_tree/{dataset}-tree.rds", outputs)
             self.assertIn(f"results/mode-test/binary/get_binary/get_continuous/{dataset}-continuous.rds", outputs)
             self.assertIn(f"results/mode-test/annotation/run_anntoation/{dataset}.done", outputs)
-            self.assertIn(f"results/mode-test/annotation/reannotate_blast_results/reference_{dataset}.tsv", outputs)
+            self.assertIn(f"results/mode-test/annotation/link_go_nodes/{dataset}/node_annotations.tsv", outputs)
 
     def test_16s_targets_are_selected_per_dataset(self):
         outputs = self.targets(options_16s={
@@ -125,8 +125,8 @@ class ModeGraphTests(unittest.TestCase):
 
     def cached_mappings(self):
         paths = {
-            "results/mode-test/binary/combined_species_hits/catalogue_mode-test.tsv": "query\ttarget\nG1_1\tF1\n",
-            "results/mode-test/binary/get_taxonomy/catalogue-binary-temp.csv": "cluster,target\nG1,F1\n",
+            "results/mode-test/binary/combined_species_hits/catalogue_mode-test.tsv": "query\ttarget\nG1_1\tF1\nG1_2\tF2\n",
+            "results/mode-test/binary/get_taxonomy/catalogue-binary-temp.csv": "cluster,target\nG1,F1\nG1,F2\n",
             "results/mode-test/clustering/mmseqs2_linclust/catalogue/unaligned_linclust_rep_seq.fasta": ">F2\nMAAAA\n",
             "results/mode-test/clustering/mmseqs2/convertalis_full_blast/reference_catalogue_convertlis.8": "G1_1\t60\tF1\t60\t0\t100\t60\t60\n",
         }
@@ -135,13 +135,15 @@ class ModeGraphTests(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(content)
 
-    def run_workflow(self, *options, error=None, target="all"):
+    def run_workflow(self, *options, error=None, target="all", dry_run=True, environment=None):
         (self.directory / "config/config.json").write_text(json.dumps(self.config))
         result = subprocess.run([
             sys.executable, "-m", "snakemake", target, "--snakefile", "workflow/Snakefile",
-            "--directory", str(self.directory), "--dry-run", "--nolock", "--cores", "1", *options,
+            "--directory", str(self.directory), "--nolock", "--cores", "1",
+            *(["--dry-run"] if dry_run else []), *options,
         ], cwd=self.directory, env={
             **os.environ, "PYTHONDONTWRITEBYTECODE": "1", "XDG_CACHE_HOME": str(self.directory / "cache"),
+            **(environment or {}),
         }, capture_output=True, text=True, timeout=90)
         output = result.stdout + result.stderr
         if error:
@@ -157,9 +159,29 @@ class ModeGraphTests(unittest.TestCase):
         "eggnog.taxa.db": "download_eggnog_taxa",
         "eggnog.taxa.db.traverse.pkl": "download_eggnog_taxa",
     }
-    emapper_target = "results/mode-test/annotation/emapper/reference/go_annotations.emapper.annotations"
+    emapper_target = "results/mode-test/annotation/emapper/catalogue/catalogue.part_001/go_annotations.emapper.annotations"
+
+    def cached_annotation_chunks(self):
+        self.cached_mappings()
+        base = "results/mode-test/annotation"
+        paths = {
+            f"{base}/get_fasta_seqs_to_annotate/catalogue.fasta": ">F1\nMAAAA\n>F2\nMAAAA\n",
+            f"{base}/get_fasta_seqs_to_annotate/catalogue.txt": "F1\n",
+            f"{base}/anvio_reformat_fasta/catalogue.fasta": ">c_000000000001\nMAAAA\n>c_000000000002\nMAAAA\n",
+            f"{base}/anvio_reformat_fasta/catalogue.names.tsv": "c_000000000001\tF1\nc_000000000002\tF2\n",
+        }
+        for index in [1, 2]:
+            chunk = f"catalogue.part_{index:03}"
+            paths[f"{base}/break_fasta_apart/catalogue/{chunk}.fasta"] = f">c_{index:012}\nMAAAA\n"
+            paths[f"{base}/get_headers/catalogue/{chunk}_header.txt"] = f"gene_callers_id\tlinker_info\n0\tF{index}\n"
+            paths[f"{base}/get_headers/catalogue/{chunk}.tmp"] = f"F{index}\n"
+        for name, content in paths.items():
+            path = self.directory / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
 
     def test_emapper_downloads_databases_in_an_existing_empty_directory(self):
+        self.cached_annotation_chunks()
         data_dir = self.directory / "resources/eggnog"
         data_dir.mkdir(parents=True)
         (data_dir / ".snakemake_timestamp").touch()
@@ -171,6 +193,7 @@ class ModeGraphTests(unittest.TestCase):
         self.assertNotIn("--data_dir resources/eggnog/eggnog_proteins.dmnd", output)
 
     def test_emapper_downloads_only_the_missing_database(self):
+        self.cached_annotation_chunks()
         data_dir = self.directory / "resources/eggnog"
         data_dir.mkdir(parents=True)
         for filename in self.eggnog_files:
@@ -187,6 +210,7 @@ class ModeGraphTests(unittest.TestCase):
                 (data_dir / filename).write_text("cached database")
 
     def test_emapper_reuses_complete_eggnog_databases(self):
+        self.cached_annotation_chunks()
         data_dir = self.directory / "resources/eggnog"
         data_dir.mkdir(parents=True)
         for filename in self.eggnog_files:
@@ -196,9 +220,56 @@ class ModeGraphTests(unittest.TestCase):
         for rule in set(self.eggnog_files.values()):
             self.assertNotIn("rule " + rule + ":", output)
 
+    def test_emapper_runs_per_ko_chunk_and_combines_original_family_ids(self):
+        self.config["mode"]["annotate_only"] = True
+        self.cached_annotation_chunks()
+        data_dir = self.directory / "resources/eggnog"
+        data_dir.mkdir(parents=True)
+        for filename in self.eggnog_files:
+            (data_dir / filename).write_text("cached database")
+        bin_dir = self.directory / "bin"
+        bin_dir.mkdir()
+        emapper = bin_dir / "emapper.py"
+        emapper.write_text(f"#!{sys.executable}\n" + '''\
+import argparse
+from pathlib import Path
+
+parser = argparse.ArgumentParser()
+for option in ["-i", "-o", "--output_dir", "--cpu", "--go_evidence", "--data_dir"]:
+    parser.add_argument(option, required=True)
+parser.add_argument("--override", action="store_true", required=True)
+args = parser.parse_args()
+with open("emapper_calls.txt", "a") as calls:
+    calls.write(args.i + "\\n")
+header = ["#query", "seed_ortholog", "evalue", "score", "eggNOG_OGs", "max_annot_lvl", "COG_category", "Description", "Preferred_name", "GOs"]
+with open(Path(args.output_dir) / (args.o + ".emapper.annotations"), "w") as output:
+    output.write("\\t".join(header) + "\\n")
+    for line in Path(args.i).read_text().splitlines():
+        if line.startswith(">"):
+            row = [line[1:].split()[0], "seed", "1e-20", "100", "OG", "2", "S", "description", "name", "GO:0008150"]
+            output.write("\\t".join(row) + "\\n")
+''')
+        emapper.chmod(0o755)
+        environment = {"PATH": str(bin_dir) + os.pathsep + os.environ["PATH"]}
+        target = "results/mode-test/annotation/make_go_db/catalogue.3"
+        output = self.run_workflow(target=target, dry_run=False, environment=environment)
+        self.assertIn("rule combine_emapper:", output)
+        expected_inputs = [
+            f"results/mode-test/annotation/break_fasta_apart/catalogue/catalogue.part_{index:03}.fasta"
+            for index in [1, 2]
+        ]
+        self.assertCountEqual((self.directory / "emapper_calls.txt").read_text().splitlines(), expected_inputs)
+        self.assertEqual((self.directory / target).read_text(), "F1\tGO:0008150\nF2\tGO:0008150\n")
+        combined = self.directory / "results/mode-test/annotation/combine_emapper/catalogue/go_annotations.emapper.annotations"
+        rows = combined.read_text().splitlines()
+        self.assertEqual(sum(row.startswith("#query\t") for row in rows), 1)
+        self.assertFalse(any(row.startswith("c_") for row in rows))
+        self.run_workflow(target=target, dry_run=False, environment=environment)
+        self.assertEqual(len((self.directory / "emapper_calls.txt").read_text().splitlines()), 2)
+
     def test_full_mode_builds_profiles_and_both_annotation_branches(self):
         output = self.run_workflow()
-        for name in ["get_binary", "get_tree", "get_continuous", "run_annotation", "reannotate_blast_results"]:
+        for name in ["get_binary", "get_tree", "get_continuous", "run_annotation", "link_go_nodes"]:
             self.assertIn("rule " + name + ":", output)
         self.assertNotIn("rule all_16S:", output)
         self.assertNotIn("Would remove temporary output results/mode-test/binary/get_taxonomy/catalogue-binary-temp.csv", output)
@@ -211,7 +282,7 @@ class ModeGraphTests(unittest.TestCase):
         for name in ["map_query", "mmseqs2_linclust", "get_taxonomy", "get_binary", "get_tree", "get_continuous", "all_16S"]:
             self.assertNotIn("rule " + name + ":", output)
         self.assertIn("rule run_annotation:", output)
-        self.assertIn("rule reannotate_blast_results:", output)
+        self.assertIn("rule link_go_nodes:", output)
 
     def test_annotation_only_rejects_missing_intermediates(self):
         self.config["mode"]["annotate_only"] = True
